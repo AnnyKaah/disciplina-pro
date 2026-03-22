@@ -18,7 +18,8 @@ let state = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
   installBannerDismissed: false,
   winShown: false,
   challengeName: i18n.challengeNameDefault,
-  customTasks: null
+  customTasks: null,
+  fullHistory: [] // Adicionado para estatísticas detalhadas
 };
 
 if (!state.tasks) state.tasks = {};
@@ -30,6 +31,7 @@ if (typeof state.installBannerDismissed !== "boolean") state.installBannerDismis
 if (typeof state.winShown !== "boolean") state.winShown = false;
 if (!state.challengeName) state.challengeName = i18n.challengeNameDefault;
 if (!Array.isArray(state.customTasks) || state.customTasks.length === 0) state.customTasks = get_DEFAULT_TASKS().slice();
+if (!state.fullHistory) state.fullHistory = [];
 
 function today() {
   const now = new Date();
@@ -144,16 +146,26 @@ function renderGoalsEditor() {
   }
 }
 
-function renderCalendar() {
+function setupCalendar() {
   const calendar = document.getElementById("calendar");
   calendar.innerHTML = "";
   for (let i = 0; i < 30; i++) {
     const d = document.createElement("div");
     d.className = "day";
-    if (state.history[i] === "done") d.classList.add("done");
-    if (state.history[i] === "miss") d.classList.add("miss");
-    if (i === state.day && state.lastDate !== today()) d.classList.add("today");
     calendar.appendChild(d);
+  }
+}
+
+function renderCalendar() {
+  const calendar = document.getElementById("calendar");
+  const days = calendar.children;
+  const isTodayLocked = state.lastDate === today();
+  for (let i = 0; i < 30; i++) {
+    const dayElement = days[i];
+    if (!dayElement) continue;
+    dayElement.classList.toggle("done", state.history[i] === "done");
+    dayElement.classList.toggle("miss", state.history[i] === "miss");
+    dayElement.classList.toggle("today", i === state.day && !isTodayLocked);
   }
 }
 
@@ -226,6 +238,13 @@ function vibrate(duration = 10) {
 function playTick() {
   playTone(680, 90, "triangle", 0.025);
   vibrate(10);
+}
+
+function playAllDone() {
+  playTone(523, 80, "sine", 0.03);
+  setTimeout(() => playTone(659, 80, "sine", 0.03), 80);
+  setTimeout(() => playTone(783, 120, "sine", 0.03), 160);
+  vibrate(40);
 }
 
 function playLevelUp() {
@@ -382,59 +401,25 @@ function render() {
   document.getElementById("streakCount").textContent = state.streak;
   document.getElementById("calendarSub").textContent = `${state.day}/30 ${i18n.days_suffix}`;
   document.getElementById("challengeNameInput").value = state.challengeName;
-  renderGoalsEditor();
   updateNotificationUI();
 
   const xpProgress = ((state.xp % 50) / 50) * 100;
   document.getElementById("xpBadge").textContent = `${state.xp % 50}/50`;
   document.getElementById("xpFill").style.width = `${xpProgress}%`;
 
-  const tasksWrap = document.getElementById("tasks");
-  tasksWrap.innerHTML = "";
-
-  TASKS.forEach((task, i) => {
-    const checked = !!state.tasks[i];
-    const el = document.createElement("button");
-    el.type = "button";
-    el.className = `task${checked ? " done" : ""}`;
-    el.innerHTML = `
-      <div class="task-icon">${task.icon}</div>
-      <div class="task-text">
-        <div class="task-name">${task.name}</div>
-        <div class="task-desc">${task.desc}</div>
-      </div>
-      <div class="task-check">✓</div>
-    `;
-    el.onclick = () => {
-      if (state.lastDate === today()) return;
-      state.tasks[i] = !state.tasks[i];
-      save();
-      playTick();
-      showToast(`${task.name} ${state.tasks[i] ? i18n.toast_task_completed : i18n.toast_task_unchecked}`);
-      render();
-    };
-    tasksWrap.appendChild(el);
-  });
-
-  const done = Object.values(state.tasks).filter(Boolean).length;
-  const allDone = done === TASKS.length;
-  const locked = state.lastDate === today();
-
-  document.getElementById("unlockTodayBtn").style.display = locked ? 'inline-block' : 'none';
-
-  document.getElementById("progressBadge").textContent = `${done}/${TASKS.length}`;
-  document.getElementById("btn").disabled = !allDone || locked;
-  document.getElementById("btn").textContent = locked ? i18n.btn_day_closed : allDone ? i18n.btn_close_day_done : i18n.btn_close_day;
-  document.getElementById("helperText").textContent = locked
-    ? i18n.helper_text_locked
-    : allDone
-      ? i18n.helper_text_all_done
-      : `${TASKS.length - done} ${i18n.helper_text_remaining}`;
-
-  updateMascot(allDone, locked);
+  updateProgressUI();
   renderCalendar();
   renderInstallUi();
 }
+
+document.getElementById('openStatsBtn').onclick = () => {
+    renderStatsModal();
+    document.getElementById('statsModal').classList.add('show');
+};
+
+document.getElementById('closeStatsBtn').onclick = () => {
+    document.getElementById('statsModal').classList.remove('show');
+};
 
 document.getElementById("enableNotificationsBtn").onclick = () => {
   askNotificationPermission();
@@ -450,6 +435,9 @@ document.getElementById("toggleCustomizationBtn").onclick = () => {
   const content = document.getElementById("customizationContent");
   const btn = document.getElementById("toggleCustomizationBtn");
   const isVisible = content.classList.contains("show");
+  if (!isVisible) {
+    renderGoalsEditor();
+  }
   content.classList.toggle("show");
   btn.textContent = isVisible ? i18n.edit : i18n.close;
 };
@@ -476,6 +464,7 @@ document.getElementById("saveCustomizationBtn").onclick = () => {
   save();
   showToast(i18n.toast_customization_saved);
   render();
+  renderTasks();
 };
 
 document.getElementById("resetCustomizationBtn").onclick = () => {
@@ -485,13 +474,17 @@ document.getElementById("resetCustomizationBtn").onclick = () => {
   save();
   showToast(i18n.toast_goals_reset);
   render();
+  renderTasks();
 };
 
 document.getElementById("unlockTodayBtn").onclick = () => {
-  // Apenas permite destravar se o dia foi fechado hoje e não estamos no dia 0
-  if (state.lastDate !== today() || state.day === 0) {
-    return;
-  }
+  document.getElementById("unlockConfirmModal").classList.add("show");
+};
+
+document.getElementById("cancelUnlockBtn").onclick = () => {
+  document.getElementById("unlockConfirmModal").classList.remove("show");
+};
+document.getElementById("confirmUnlockBtn").onclick = () => {
 
   // Reverte os status
   state.day -= 1;
@@ -519,7 +512,9 @@ document.getElementById("unlockTodayBtn").onclick = () => {
 
   save();
   showToast(i18n.toast_day_unlocked);
+  document.getElementById("unlockConfirmModal").classList.remove("show");
   render();
+  renderTasks();
 };
 
 document.getElementById("closeLevelupBtn").onclick = () => {
@@ -559,6 +554,48 @@ document.getElementById("startChallengeBtn").onclick = () => {
   document.getElementById("welcomeScreen").classList.remove("show");
 };
 
+document.getElementById("backupBtn").onclick = () => {
+  const dataStr = JSON.stringify(state);
+  const dataBlob = new Blob([dataStr], {type: "application/json"});
+  const url = URL.createObjectURL(dataBlob);
+  const link = document.createElement('a');
+  link.href = url;
+  const date = new Date().toISOString().slice(0, 10);
+  link.download = `disciplina-pro-backup-${date}.json`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+  showToast(i18n.toast_backup_created);
+};
+
+document.getElementById("restoreBtn").onclick = () => {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json,application/json';
+  input.onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const newState = JSON.parse(event.target.result);
+        // Validação básica para garantir que é um backup válido
+        if (newState && typeof newState.day === 'number' && typeof newState.xp === 'number') {
+          state = newState;
+          save();
+          showToast(i18n.toast_restore_success);
+          render();
+          renderTasks();
+          renderGoalsEditor();
+        } else throw new Error("Invalid backup file format");
+      } catch (err) { showToast(i18n.toast_restore_fail); console.error(err); }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+};
+
 document.getElementById("installBtn").onclick = triggerInstall;
 document.getElementById("bannerInstallBtn").onclick = triggerInstall;
 document.getElementById("dismissInstallBannerBtn").onclick = () => {
@@ -580,23 +617,34 @@ document.getElementById("btn").onclick = () => {
   state.xp += 20;
   state.lastDate = today();
   state.history[state.day - 1] = "done";
+
+  // Salva o estado detalhado das tarefas para as estatísticas
+  const completedTaskNames = getTasks()
+    .filter((_, i) => state.tasks[i])
+    .map(task => task.name);
+  state.fullHistory.push({
+    date: state.lastDate,
+    completedTasks: completedTaskNames
+  });
+
   state.tasks = {};
   state.mission = randomItem(get_MISSIONS());
-
+ 
   let leveledUp = false;
   while (state.xp >= state.level * 50) {
     state.level += 1;
     leveledUp = true;
   }
-
+ 
   save();
   render();
+  renderTasks();
   animateXpGain(oldXp, state.xp);
   showToast(i18n.toast_day_closed);
   playTick();
   setTimeout(() => playTick(), 90);
-  launchConfetti(28);
-
+  launchConfetti(28); // Standard confetti for closing a day
+ 
   const streakMilestones = [3, 7, 15, 30];
   if (streakMilestones.includes(state.streak)) {
     const shareTitleText = document.getElementById('shareTitleText');
@@ -605,13 +653,29 @@ document.getElementById("btn").onclick = () => {
       document.getElementById("shareModal").classList.add("show");
     }, 800);
   }
-
+ 
   if (leveledUp) {
-    document.getElementById("levelupText").textContent = `${i18n.levelup_text_prefix} ${state.level}.`;
-    document.getElementById("levelupModal").classList.add("show");
-    playLevelUp();
-  }
+    // More elaborate animation sequence for level up
+    setTimeout(() => {
+      // 1. More intense confetti
+      launchConfetti(60);
+      
+      // 2. Play sound and vibration
+      playLevelUp();
+      vibrate([100, 50, 100, 50, 100]);
 
+      // 3. Animate the level badge in the hero section
+      const levelBadge = document.getElementById("level");
+      levelBadge.classList.remove("level-up-flash"); // Reset animation
+      void levelBadge.offsetWidth; // Trigger reflow to restart animation
+      levelBadge.classList.add("level-up-flash");
+
+      // 4. Show the modal
+      document.getElementById("levelupText").textContent = `${i18n.levelup_text_prefix} ${state.level}.`;
+      document.getElementById("levelupModal").classList.add("show");
+    }, 500); // Delay to let the XP bar finish
+  }
+ 
   if (state.day >= 30 && !state.winShown) {
     state.winShown = true;
     save();
@@ -639,14 +703,18 @@ window.addEventListener("appinstalled", () => {
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./service-worker.js").catch(() => {});
+    navigator.serviceWorker.register("./service-worker.js").catch((err) => {
+      console.error("Falha ao registrar o Service Worker:", err);
+    });
   });
 }
 
 updateMissedDay();
 applyTranslations();
-render();
+setupCalendar();
 setupGoalsEditor();
+render();
+renderTasks();
 if (!state.onboardingSeen) {
   document.getElementById("welcomeScreen").classList.add("show");
 } else {
