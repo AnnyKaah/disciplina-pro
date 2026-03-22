@@ -19,8 +19,22 @@ let state = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
   winShown: false,
   challengeName: i18n.challengeNameDefault,
   customTasks: null,
-  fullHistory: [] // Adicionado para estatísticas detalhadas
+  fullHistory: [],
+  theme: 'dark'
 };
+
+// Sanitize state on load and persist the fix. This is crucial for recovering from corrupted data.
+let stateWasSanitized = false;
+if (state.day < 0) { state.day = 0; stateWasSanitized = true; }
+if (state.streak < 0) { state.streak = 0; stateWasSanitized = true; }
+if (state.xp < 0) { state.xp = 0; stateWasSanitized = true; }
+if (state.level < 1) { state.level = 1; stateWasSanitized = true; }
+if (typeof state.hearts !== 'number' || state.hearts < 0 || state.hearts > 3) { state.hearts = 3; stateWasSanitized = true; }
+
+if (stateWasSanitized) {
+  console.log("Corrupted state detected and sanitized.");
+  save();
+}
 
 if (!state.tasks) state.tasks = {};
 if (!state.history) state.history = [];
@@ -32,6 +46,7 @@ if (typeof state.winShown !== "boolean") state.winShown = false;
 if (!state.challengeName) state.challengeName = i18n.challengeNameDefault;
 if (!Array.isArray(state.customTasks) || state.customTasks.length === 0) state.customTasks = get_DEFAULT_TASKS().slice();
 if (!state.fullHistory) state.fullHistory = [];
+if (!state.theme) state.theme = 'dark';
 
 function today() {
   const now = new Date();
@@ -53,16 +68,20 @@ function getTasks() {
 }
 
 function taskIconFor(name, index) {
+  const ICON_MAP = [
+    [["bike"], "🚴"],
+    [["python", "estudar", "curso"], "🐍"],
+    [["oração", "rezar"], "🙏"],
+    [["terço", "salmo"], "📿"],
+    [["doce", "chocolate"], "🍫"],
+    [["água"], "💧"],
+    [["trabalho"], "💼"],
+    [["ler", "livro"], "📖"],
+    [["treino", "agach"], "💪"],
+  ];
   const lower = name.toLowerCase();
-  if (lower.includes("bike")) return "🚴";
-  if (lower.includes("python") || lower.includes("estudar") || lower.includes("curso")) return "🐍";
-  if (lower.includes("oração") || lower.includes("rezar")) return "🙏";
-  if (lower.includes("terço") || lower.includes("salmo")) return "📿";
-  if (lower.includes("doce") || lower.includes("chocolate")) return "🍫";
-  if (lower.includes("água")) return "💧";
-  if (lower.includes("trabalho")) return "💼";
-  if (lower.includes("ler") || lower.includes("livro")) return "📖";
-  if (lower.includes("treino") || lower.includes("agach")) return "💪";
+  const found = ICON_MAP.find(([keywords]) => keywords.some(kw => lower.includes(kw)));
+  if (found) return found[1];
   return ICON_POOL[index % ICON_POOL.length];
 }
 
@@ -169,36 +188,205 @@ function renderCalendar() {
   }
 }
 
+function calculateStats() {
+    const history = state.history;
+    const fullHistory = state.fullHistory || [];
+    const tasks = getTasks();
+
+    // Best Streak
+    let bestStreak = 0;
+    let currentStreak = 0;
+    for (const entry of history) {
+        if (entry === 'done') {
+            currentStreak++;
+        } else {
+            bestStreak = Math.max(bestStreak, currentStreak);
+            currentStreak = 0;
+        }
+    }
+    bestStreak = Math.max(bestStreak, currentStreak);
+
+    // Completion Rate
+    const daysPassed = history.filter(d => d === 'done' || d === 'miss').length;
+    const daysDone = history.filter(d => d === 'done').length;
+    const completionRate = daysPassed > 0 ? Math.round((daysDone / daysPassed) * 100) : 0;
+
+    // Task Performance
+    const taskPerformance = {};
+    tasks.forEach(task => {
+        taskPerformance[task.name] = {
+            name: task.name,
+            icon: task.icon,
+            completions: 0,
+        };
+    });
+
+    fullHistory.forEach(dayEntry => {
+        dayEntry.completedTasks.forEach(taskName => {
+            if (taskPerformance[taskName]) {
+                taskPerformance[taskName].completions++;
+            }
+        });
+    });
+
+    return {
+        totalCompleted: daysDone,
+        bestStreak,
+        completionRate,
+        taskPerformance: Object.values(taskPerformance),
+        totalDaysWithHistory: fullHistory.length
+    };
+}
+
+function renderStatsModal() {
+    const stats = calculateStats();
+
+    document.getElementById('statsDaysCount').textContent = stats.totalCompleted;
+    document.getElementById('statsBestStreak').textContent = stats.bestStreak;
+    document.getElementById('statsCompletionRate').textContent = `${stats.completionRate}%`;
+
+    const taskList = document.getElementById('statsTaskList');
+    taskList.innerHTML = '';
+
+    if (stats.taskPerformance.length === 0 || stats.totalDaysWithHistory === 0) {
+        taskList.innerHTML = `<div class="helper">${i18n.helper_text_all_done}</div>`; // Reusing a translation
+        return;
+    }
+
+    stats.taskPerformance.sort((a, b) => b.completions - a.completions).forEach(task => {
+        const item = document.createElement('div');
+        item.className = 'stats-task-item';
+        const completionPercentage = stats.totalDaysWithHistory > 0 ? Math.round((task.completions / stats.totalDaysWithHistory) * 100) : 0;
+        item.innerHTML = `
+            <div class="task-icon">${task.icon}</div>
+            <div class="task-text"><div class="stats-task-name">${task.name}</div><div class="stats-task-rate">${completionPercentage}% (${task.completions}/${stats.totalDaysWithHistory})</div></div>
+            <div class="xpbar" style="width:60px;height:8px"><div class="xpfill" style="width:${completionPercentage}%"></div></div>`;
+        taskList.appendChild(item);
+    });
+}
+
+function updateProgressUI() {
+  const TASKS = getTasks();
+  const done = Object.values(state.tasks).filter(Boolean).length;
+  const allDone = done === TASKS.length;
+  const locked = state.lastDate === today();
+
+  document.getElementById("unlockTodayBtn").style.display = locked ? 'inline-block' : 'none';
+
+  document.getElementById("progressBadge").textContent = `${done}/${TASKS.length}`;
+  document.getElementById("btn").disabled = !allDone || locked;
+  document.getElementById("btn").textContent = locked ? i18n.btn_day_closed : allDone ? i18n.btn_close_day_done : i18n.btn_close_day;
+  document.getElementById("helperText").textContent = locked
+    ? i18n.helper_text_locked
+    : allDone
+      ? i18n.helper_text_all_done
+      : `${TASKS.length - done} ${i18n.helper_text_remaining}`;
+
+  updateMascot(allDone, locked);
+}
+
+function handleTaskClick(event) {
+  if (state.lastDate === today()) return;
+
+  const taskElement = event.currentTarget;
+  const index = parseInt(taskElement.dataset.taskIndex, 10);
+  const task = getTasks()[index];
+
+  // 1. Update state
+  state.tasks[index] = !state.tasks[index];
+  save();
+
+  // 2. Give feedback
+  const TASKS = getTasks();
+  const doneCount = Object.values(state.tasks).filter(Boolean).length;
+  const allDone = doneCount === TASKS.length;
+
+  if (state.tasks[index] && allDone) {
+    playAllDone();
+    showToast(i18n.toast_all_tasks_completed);
+  } else {
+    playTick();
+    showToast(`${task.name} ${state.tasks[index] ? i18n.toast_task_completed : i18n.toast_task_unchecked}`);
+  }
+
+  // 3. Efficiently update the DOM
+  taskElement.classList.toggle("done", state.tasks[index]);
+  updateProgressUI();
+}
+
+function renderTasks() {
+  const tasksWrap = document.getElementById("tasks");
+  tasksWrap.innerHTML = "";
+  const TASKS = getTasks();
+
+  TASKS.forEach((task, i) => {
+    const checked = !!state.tasks[i];
+    const el = document.createElement("button");
+    el.type = "button";
+    el.className = `task${checked ? " done" : ""}`;
+    el.dataset.taskIndex = i;
+    el.innerHTML = `
+      <div class="task-icon">${task.icon}</div>
+      <div class="task-text">
+        <div class="task-name">${task.name}</div>
+        <div class="task-desc">${task.desc}</div>
+      </div>
+      <div class="task-check">✓</div>
+    `;
+    el.onclick = handleTaskClick;
+    tasksWrap.appendChild(el);
+  });
+}
+
+function applyTheme(theme) {
+  document.body.className = `theme-${theme}`;
+  document.querySelector('meta[name="theme-color"]').setAttribute("content", theme === 'dark' ? '#44e0b2' : '#ffffff');
+  document.getElementById('lightThemeBtn').classList.toggle('active', theme === 'light');
+  document.getElementById('darkThemeBtn').classList.toggle('active', theme === 'dark');
+}
+
+function setTheme(newTheme) {
+  if (state.theme === newTheme) return;
+  state.theme = newTheme;
+  save();
+  applyTheme(newTheme);
+}
+
 function updateMascot(done, locked) {
   const face = document.getElementById("mascotFace");
   const msg = document.getElementById("mascotMessage");
   face.className = "mascot-face";
+  let mood = 'neutral'; // Default mood
 
   if (locked) {
     face.textContent = "😴";
     msg.textContent = randomItem(get_MASCOT_MESSAGES().locked);
-    return;
-  }
-  if (done) {
+    mood = 'locked';
+  } else if (done) {
     face.textContent = "😄";
     face.classList.add("happy");
     msg.textContent = randomItem(get_MASCOT_MESSAGES().done);
-    return;
-  }
-  const completed = Object.values(state.tasks).filter(Boolean).length;
-  const totalTasks = getTasks().length;
-
-  if (completed === 0) {
-    face.textContent = "😐";
-    msg.textContent = randomItem(get_MASCOT_MESSAGES().neutral);
-  } else if (completed === totalTasks - 1 && totalTasks > 1) {
-    face.textContent = "🤩";
-    face.classList.add("happy");
-    msg.textContent = randomItem(get_MASCOT_MESSAGES().almost);
+    mood = 'done';
   } else {
-    face.textContent = "🙂";
-    msg.textContent = randomItem(get_MASCOT_MESSAGES().partial);
+    const completed = Object.values(state.tasks).filter(Boolean).length;
+    const totalTasks = getTasks().length;
+
+    if (completed === 0) {
+      face.textContent = "😐";
+      msg.textContent = randomItem(get_MASCOT_MESSAGES().neutral);
+      mood = 'neutral';
+    } else if (completed === totalTasks - 1 && totalTasks > 1) {
+      face.textContent = "🤩";
+      face.classList.add("happy");
+      msg.textContent = randomItem(get_MASCOT_MESSAGES().almost);
+      mood = 'almost';
+    } else {
+      face.textContent = "🙂";
+      msg.textContent = randomItem(get_MASCOT_MESSAGES().partial);
+      mood = 'partial';
+    }
   }
+  face.dataset.mood = mood; // Store the current mood
 }
 
 function showToast(message) {
@@ -326,12 +514,12 @@ async function askNotificationPermission() {
 
 async function updateNotificationUI() {
   const btn = document.getElementById("enableNotificationsBtn");
-  const card = document.getElementById("notificationsCard");
 
   if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
-    card.hidden = true;
+    if (btn) btn.style.display = 'none';
     return;
   }
+  if (btn) btn.style.display = 'block';
 
   const permission = Notification.permission;
   if (permission === "granted") {
@@ -395,7 +583,6 @@ function render() {
   document.getElementById("xp").textContent = `${state.xp} XP`;
   document.getElementById("level").textContent = `${i18n.level} ${state.level}`;
   document.getElementById("hearts").textContent = "❤️".repeat(state.hearts);
-  document.getElementById("msg").textContent = randomItem(get_MESSAGES());
   document.getElementById("mission").textContent = state.mission;
   document.getElementById("daysCount").textContent = state.day;
   document.getElementById("streakCount").textContent = state.streak;
@@ -412,6 +599,20 @@ function render() {
   renderInstallUi();
 }
 
+function showXpGainToast(amount) {
+  const toast = document.getElementById('xpGainToast');
+  if (!toast) return;
+  const btn = document.getElementById('btn');
+  const rect = btn.getBoundingClientRect();
+  toast.textContent = `+${amount} XP`;
+  toast.style.left = `${rect.left + (rect.width / 2) - (toast.offsetWidth / 2)}px`;
+  toast.style.top = `${rect.top - 40}px`;
+  toast.classList.add('show');
+  setTimeout(() => {
+    toast.classList.remove('show');
+  }, 1400);
+}
+
 document.getElementById('openStatsBtn').onclick = () => {
     renderStatsModal();
     document.getElementById('statsModal').classList.add('show');
@@ -425,15 +626,42 @@ document.getElementById("enableNotificationsBtn").onclick = () => {
   askNotificationPermission();
 };
 
-document.querySelector('.mascot-card').onclick = () => {
-  const msg = document.getElementById("mascotMessage"); // A lógica de qual mensagem mostrar já está em updateMascot
-  msg.textContent = randomItem(get_MESSAGES());
-  vibrate(10);
+document.getElementById('lightThemeBtn').onclick = () => {
+  setTheme('light');
 };
 
-document.getElementById("toggleCustomizationBtn").onclick = () => {
-  const content = document.getElementById("customizationContent");
-  const btn = document.getElementById("toggleCustomizationBtn");
+document.getElementById('darkThemeBtn').onclick = () => {
+  setTheme('dark');
+};
+
+document.querySelector('.mascot-card').onclick = () => {
+  const face = document.getElementById("mascotFace");
+  const msg = document.getElementById("mascotMessage");
+  const currentMood = face.dataset.mood || 'neutral';
+  const messagePool = get_MASCOT_MESSAGES()[currentMood];
+
+  // Animate face with a "pop"
+  face.classList.remove('pop');
+  void face.offsetWidth; // Trigger reflow to restart animation
+  face.classList.add('pop');
+  vibrate(20);
+
+  // Animate message change with a fade
+  msg.style.opacity = 0;
+  setTimeout(() => {
+    // Find a new message that is different from the current one
+    let newMessage = randomItem(messagePool);
+    if (messagePool.length > 1) {
+      while (newMessage === msg.textContent) { newMessage = randomItem(messagePool); }
+    }
+    msg.textContent = newMessage;
+    msg.style.opacity = 1;
+  }, 150);
+};
+
+document.getElementById("toggleSettingsBtn").onclick = () => {
+  const content = document.getElementById("settingsContent");
+  const btn = document.getElementById("toggleSettingsBtn");
   const isVisible = content.classList.contains("show");
   if (!isVisible) {
     renderGoalsEditor();
@@ -485,6 +713,12 @@ document.getElementById("cancelUnlockBtn").onclick = () => {
   document.getElementById("unlockConfirmModal").classList.remove("show");
 };
 document.getElementById("confirmUnlockBtn").onclick = () => {
+  // Guard to prevent state corruption. Only allow unlock if the day was closed today and day > 0.
+  if (state.lastDate !== today() || state.day <= 0) {
+    showToast(i18n.toast_unlock_not_allowed);
+    document.getElementById("unlockConfirmModal").classList.remove("show");
+    return;
+  }
 
   // Reverte os status
   state.day -= 1;
@@ -640,6 +874,7 @@ document.getElementById("btn").onclick = () => {
   render();
   renderTasks();
   animateXpGain(oldXp, state.xp);
+  showXpGainToast(20);
   showToast(i18n.toast_day_closed);
   playTick();
   setTimeout(() => playTick(), 90);
@@ -709,14 +944,55 @@ if ("serviceWorker" in navigator) {
   });
 }
 
-updateMissedDay();
-applyTranslations();
-setupCalendar();
-setupGoalsEditor();
-render();
-renderTasks();
-if (!state.onboardingSeen) {
-  document.getElementById("welcomeScreen").classList.add("show");
-} else {
-  document.getElementById("welcomeScreen").classList.remove("show");
+try {
+  updateMissedDay();
+  applyTheme(state.theme);
+  applyTranslations();
+  setupCalendar();
+  setupGoalsEditor();
+  renderGoalsEditor();
+  render();
+  renderTasks();
+  if (!state.onboardingSeen) {
+    document.getElementById("welcomeScreen").classList.add("show");
+  }
+
+  // Hide splash screen after a short delay to let the app render and animations settle
+  setTimeout(() => {
+    document.getElementById('splashScreen').classList.add('hidden');
+  }, 400);
+
+} catch (error) {
+  console.error("A critical rendering error occurred:", error);
+  document.body.innerHTML = `
+    <div style="padding: 20px; text-align: center; color: white; font-family: sans-serif; max-width: 600px; margin: 40px auto;">
+        <h1 style="color: #ff5f7a;">Ocorreu um Erro Crítico</h1>
+        <p style="line-height: 1.6;">Parece que os dados salvos do aplicativo estão corrompidos, o que impede seu funcionamento. Isso pode acontecer após uma atualização.</p>
+        <p style="line-height: 1.6;"><strong>Para resolver, clique no botão abaixo para fazer um reset completo do aplicativo.</strong></p>
+        <button id="hardResetBtn" style="background: #ff5f7a; color: white; border: none; padding: 14px 24px; font-size: 16px; font-weight: bold; border-radius: 12px; cursor: pointer; margin-top: 20px;">Limpar Dados e Recarregar</button>
+        <p style="font-size: 12px; opacity: 0.7; line-height: 1.5; margin-top: 12px;">Atenção: Isso irá apagar todo o seu progresso, mas corrigirá o aplicativo. Use esta opção se o app não estiver carregando corretamente.</p>
+    </div>
+    <script>
+      // O texto é fixo (hardcoded) pois não podemos garantir que o i18n carregou.
+      const splash = document.getElementById('splashScreen');
+      if (splash) {
+        splash.classList.add('hidden');
+      }
+      document.getElementById('hardResetBtn').onclick = function() {
+        this.disabled = true;
+        this.textContent = 'Limpando...';
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then(function(registrations) {
+            return Promise.all(registrations.map(r => r.unregister()));
+          }).then(function() {
+            localStorage.clear();
+            window.location.reload(true);
+          });
+        } else {
+          localStorage.clear();
+          window.location.reload(true);
+        }
+      };
+    <\/script>
+  `;
 }
