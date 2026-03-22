@@ -57,7 +57,7 @@ Este é um projeto de código aberto e contribuições são bem-vindas. Se você
 
 ## 📄 Licença
 
-Este projeto está sob a licença MIT. Sugiro criar um arquivo `LICENSE` no seu repositório com o conteúdo da licença MIT.
+Este projeto está sob a licença MIT. 
 
 ---
 
