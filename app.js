@@ -1,56 +1,5 @@
-const DEFAULT_TASKS = [
-  { name: "15 min de bike", icon: "🚴", desc: "movimento e energia" },
-  { name: "10 agachamentos", icon: "🍑", desc: "força e constância" },
-  { name: "Estudar Python", icon: "🐍", desc: "crescimento e foco" },
-  { name: "Oração", icon: "🙏", desc: "São José Dormindo" },
-  { name: "Terço + Salmo 139", icon: "📿", desc: "oração completa" },
-  { name: "Sem doce/chocolate", icon: "🍫", desc: "disciplina do dia" }
-];
-
 const ICON_POOL = ["🎯","✨","📚","💻","🏃","🚴","🧠","🙏","📿","💪","🍫","💧","🌙","💼","📝","🎨","📖","🧘","🏆","🔥"];
-
-const MESSAGES = [
-  "Sem desculpas. Só consistência.",
-  "Cada dia fechado fortalece sua identidade.",
-  "Hoje conta. Hoje constrói o resultado.",
-  "Você não precisa de motivação. Precisa de sequência."
-];
-
-const MISSIONS = [
-  "+10 XP se fechar o dia com todos os checks.",
-  "Missão limpa: complete tudo sem pular nenhum item.",
-  "Modo foco: finalize o checklist completo hoje."
-];
-
-const MASCOT_MESSAGES = {
-  neutral: [
-    "Vamos fechar esse dia.",
-    "Um passo de cada vez.",
-    "O primeiro passo é o mais importante.",
-    "Foco na primeira meta de hoje."
-  ],
-  partial: [
-    "Boa. Continua assim.",
-    "Você está no caminho certo.",
-    "Não pare agora, a consistência é a chave.",
-    "Mais um passo dado!"
-  ],
-  almost: [
-    "Você está quase lá!",
-    "Falta pouco, não desista agora.",
-    "A reta final! Vamos com tudo."
-  ],
-  done: [
-    "Tudo pronto. Fecha esse dia agora.",
-    "Mandou bem! Dia concluído. ✨"
-  ],
-  locked: [
-    "Hoje já foi. Amanhã tem mais.",
-    "Descanse. Você mereceu."
-  ]
-};
-
-const VAPID_PUBLIC_KEY = "BDS_T-d3nLp2GImA-o_pWCoI-yq8u2zYFqgJzY_jJ6M_p_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_j_-";
+const VAPID_PUBLIC_KEY = "BDS_T-d3nLp2GImA-o_pWCoI-yq8u2zYFqgJzY_jJ6M";
 const STORAGE_KEY = "disciplina-pro-v3";
 let deferredInstallPrompt = null;
 let draggedItem = null;
@@ -215,13 +164,13 @@ function updateMascot(done, locked) {
 
   if (locked) {
     face.textContent = "😴";
-    msg.textContent = randomItem(i18n.mascot_locked1 ? MASCOT_MESSAGES.locked : translations.pt.mascot_locked1);
+    msg.textContent = randomItem(get_MASCOT_MESSAGES().locked);
     return;
   }
   if (done) {
     face.textContent = "😄";
     face.classList.add("happy");
-    msg.textContent = randomItem(MASCOT_MESSAGES.done);
+    msg.textContent = randomItem(get_MASCOT_MESSAGES().done);
     return;
   }
   const completed = Object.values(state.tasks).filter(Boolean).length;
@@ -229,14 +178,14 @@ function updateMascot(done, locked) {
 
   if (completed === 0) {
     face.textContent = "😐";
-    msg.textContent = randomItem(MASCOT_MESSAGES.neutral);
+    msg.textContent = randomItem(get_MASCOT_MESSAGES().neutral);
   } else if (completed === totalTasks - 1 && totalTasks > 1) {
     face.textContent = "🤩";
     face.classList.add("happy");
-    msg.textContent = randomItem(MASCOT_MESSAGES.almost);
+    msg.textContent = randomItem(get_MASCOT_MESSAGES().almost);
   } else {
     face.textContent = "🙂";
-    msg.textContent = randomItem(MASCOT_MESSAGES.partial);
+    msg.textContent = randomItem(get_MASCOT_MESSAGES().partial);
   }
 }
 
@@ -471,6 +420,8 @@ function render() {
   const allDone = done === TASKS.length;
   const locked = state.lastDate === today();
 
+  document.getElementById("unlockTodayBtn").style.display = locked ? 'inline-block' : 'none';
+
   document.getElementById("progressBadge").textContent = `${done}/${TASKS.length}`;
   document.getElementById("btn").disabled = !allDone || locked;
   document.getElementById("btn").textContent = locked ? i18n.btn_day_closed : allDone ? i18n.btn_close_day_done : i18n.btn_close_day;
@@ -490,7 +441,7 @@ document.getElementById("enableNotificationsBtn").onclick = () => {
 };
 
 document.querySelector('.mascot-card').onclick = () => {
-  const msg = document.getElementById("mascotMessage");
+  const msg = document.getElementById("mascotMessage"); // A lógica de qual mensagem mostrar já está em updateMascot
   msg.textContent = randomItem(get_MESSAGES());
   vibrate(10);
 };
@@ -537,7 +488,35 @@ document.getElementById("resetCustomizationBtn").onclick = () => {
 };
 
 document.getElementById("unlockTodayBtn").onclick = () => {
+  // Apenas permite destravar se o dia foi fechado hoje e não estamos no dia 0
+  if (state.lastDate !== today() || state.day === 0) {
+    return;
+  }
+
+  // Reverte os status
+  state.day -= 1;
+  state.streak -= 1;
+  state.xp -= 20;
+
+  // Garante que os valores não fiquem negativos
+  if (state.xp < 0) state.xp = 0;
+  if (state.streak < 0) state.streak = 0;
+
+  // Verifica se o nível precisa ser diminuído
+  while (state.xp < (state.level - 1) * 50 && state.level > 1) {
+    state.level -= 1;
+  }
+
   state.lastDate = null;
+  state.history.pop(); // Remove o status "done" do histórico
+
+  // Restaura as tarefas para o estado "todas marcadas" para que o usuário possa fechar o dia novamente
+  const TASKS = getTasks();
+  state.tasks = {};
+  TASKS.forEach((_, i) => {
+    state.tasks[i] = true;
+  });
+
   save();
   showToast(i18n.toast_day_unlocked);
   render();
@@ -561,7 +540,7 @@ document.getElementById("shareBtn").onclick = async () => {
   const shareData = {
     title: `🔥 Disciplina PRO`,
     text: `Eu completei ${state.streak} ${state.streak > 1 ? 'dias' : 'dia'} de streak no desafio Disciplina PRO! 💪`,
-    url: 'https://disciplina-pro.vercel.app' // Substitua pela URL do seu app
+    url: 'https://disciplina-pro-checklist.vercel.app/'
   };
   try {
     if (navigator.share) {
