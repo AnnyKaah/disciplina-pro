@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Disciplina PRO</title>
+<link rel="manifest" href="manifest.json" />
+<link rel="apple-touch-icon" href="icon-192.png" />
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#44e0b2" />
+<!-- Splash screens for iOS -->
+<link rel="apple-touch-startup-image" href="icon-512.png" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)" />
+<link rel="apple-touch-startup-image" href="icon-512.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Disciplina PRO" />
+<style>
+:root{
+  --bg-1:#0b1023;
+  --bg-2:#15103a;
+  --card:rgba(17,24,49,.72);
+  --stroke:rgba(255,255,255,.08);
+  --text:#f8fbff;
+  --muted:#b6c2ea;
+  --accent:#7cff6b;
+  --accent-2:#44e0b2;
+  --accent-3:#7a7cff;
+  --gold:#ffd54a;
+  --danger:#ff5f7a;
+  --shadow:0 18px 40px rgba(0,0,0,.35);
+  --shadow-strong:0 18px 40px rgba(68,224,178,.22);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{
+  margin:0;
+  font-family:Inter,system-ui,sans-serif;
+  color:var(--text);
+  background:
+    radial-gradient(circle at 15% 20%, rgba(124,255,107,.12), transparent 18%),
+    radial-gradient(circle at 85% 10%, rgba(122,124,255,.18), transparent 22%),
+    radial-gradient(circle at 50% 100%, rgba(68,224,178,.12), transparent 24%),
+    linear-gradient(180deg,var(--bg-1),var(--bg-2));
+  overflow-x:hidden;
+}
+body::before,body::after{
+  content:"";
+  position:fixed;
+  width:260px;height:260px;border-radius:50%;filter:blur(46px);pointer-events:none;opacity:.35;z-index:0;
+}
+body::before{top:-80px;left:-60px;background:rgba(122,124,255,.28)}
+body::after{right:-60px;bottom:10%;background:rgba(124,255,107,.18)}
+button,input,textarea{font:inherit}
+button{border:none}
+.app{
+  max-width:560px;
+  margin:auto;
+  padding:calc(12px + var(--safe-top)) 12px calc(24px + var(--safe-bottom));
+  display:grid;
+  gap:14px;
+  position:relative;
+  z-index:1;
+}
+.card{
+  background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
+  border:1px solid var(--stroke);
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+  border-radius:24px;
+  padding:16px;
+  box-shadow:var(--shadow);
+}
+.hero{
+  position:relative;
+  overflow:hidden;
+  padding:24px 18px 18px;
+  background:
+    radial-gradient(circle at top right, rgba(255,213,74,.26), transparent 24%),
+    radial-gradient(circle at left center, rgba(124,255,107,.22), transparent 35%),
+    linear-gradient(135deg,#7cff6b 0%,#44e0b2 45%,#7a7cff 100%);
+  color:#07131b;
+  border-radius:28px;
+  box-shadow:var(--shadow-strong);
+}
+.hero::after{
+  content:"⚡";
+  position:absolute;
+  right:14px;top:10px;
+  font-size:44px;
+  opacity:.9;
+  transform:rotate(8deg);
+  animation:floaty 2.8s ease-in-out infinite;
+}
+.hero h1{margin:0;font-size:34px;line-height:.92;font-weight:950;letter-spacing:-.05em}
+.hero p{margin:8px 0 0;font-weight:700;font-size:14px;max-width:32ch;opacity:.88}
+.top{display:flex;justify-content:space-between;align-items:center;margin-top:14px;gap:10px;flex-wrap:wrap}
+.top-left,.top-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#xp{display:inline-flex;align-items:center;gap:6px;background:#08131b;color:#d8fff1;padding:8px 12px;border-radius:999px;font-weight:900;box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
+.pill{background:rgba(7,19,27,.14);border:1px solid rgba(7,19,27,.08);padding:8px 12px;border-radius:999px;font-weight:900}
+.hearts{font-size:19px;filter:drop-shadow(0 2px 8px rgba(255,95,122,.25))}
+.ghost-btn,.btn,.levelup-btn,.install-btn,.secondary-btn{
+  border:none;border-radius:18px;padding:14px 16px;font-weight:900;cursor:pointer;transition:.18s transform,.18s filter,.18s opacity,.18s box-shadow;
+}
+.ghost-btn:active,.btn:active,.levelup-btn:active,.install-btn:active,.secondary-btn:active{transform:scale(.98)}
+.ghost-btn{background:rgba(255,255,255,.06);color:var(--text);border:1px solid rgba(255,255,255,.08)}
+.install-btn{background:rgba(7,19,27,.14);color:#08131b;border:1px solid rgba(7,19,27,.08)}
+.btn{width:100%;padding:18px;font-size:17px;background:linear-gradient(135deg,var(--accent),var(--accent-2) 55%, var(--gold));color:#082218;box-shadow:0 16px 28px rgba(68,224,178,.2)}
+.btn:disabled{opacity:.45;filter:saturate(.7);cursor:not-allowed}
+.secondary-btn{background:linear-gradient(135deg,rgba(122,124,255,.22),rgba(68,224,178,.16));color:var(--text);width:100%}
+.mascot-card{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px}
+.mascot-card{cursor:pointer;user-select:none;transition:background .2s ease}
+.mascot-card:hover{background:linear-gradient(180deg, rgba(255,255,255,.1), rgba(255,255,255,.06))}
+.mascot-wrap{display:flex;align-items:center;gap:12px}
+.mascot-face{font-size:42px;line-height:1;filter:drop-shadow(0 8px 18px rgba(122,124,255,.22));transition:transform .22s ease, filter .22s ease}
+.mascot-face.happy{transform:scale(1.12) rotate(-4deg);filter:drop-shadow(0 8px 22px rgba(124,255,107,.28))}
+.mascot-face.warn{transform:translateY(-2px) scale(1.05)}
+.mascot-text{display:grid;gap:4px}
+.mascot-title{font-size:13px;font-weight:900;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.mascot-message{font-size:14px;font-weight:800}
+.xpbar{height:10px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;position:relative;box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
+.xpfill{height:100%;width:0%;border-radius:inherit;background:linear-gradient(90deg,var(--accent),var(--accent-2),var(--gold));box-shadow:0 0 18px rgba(68,224,178,.22);transition:width .45s ease;position:relative}
+.xpfill::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.28),transparent);animation:shimmer 2s linear infinite}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.stat-card{padding:14px 16px;border-radius:22px;background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03));border:1px solid rgba(255,255,255,.06)}
+.stat-label{font-size:12px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.06em}
+.stat-value{font-size:28px;font-weight:950;letter-spacing:-.04em;margin-top:6px}
+.calendar-wrap{padding:0}
+.calendar-head{display:flex;justify-content:space-between;align-items:center;padding:16px 16px 0;gap:10px;flex-wrap:wrap}
+.calendar-title{font-size:14px;font-weight:900;color:var(--muted)}
+.calendar-sub{font-size:12px;color:var(--muted)}
+.calendar{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;padding:14px}
+.day{height:18px;border-radius:999px;background:rgba(255,255,255,.08);position:relative;overflow:hidden;box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}
+.day.done{background:linear-gradient(90deg,var(--accent),var(--accent-2))}
+.day.miss{background:linear-gradient(90deg,#ff7b92,var(--danger))}
+.day.today{outline:2px solid rgba(255,213,74,.7);outline-offset:2px}
+.day::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.25),transparent);transform:translateX(-100%)}
+.day.done::after{animation:shimmer 2.2s infinite}
+.mission{background:linear-gradient(135deg, rgba(122,124,255,.2), rgba(68,224,178,.14));padding:14px;border-radius:18px;font-size:13px;border:1px solid rgba(255,255,255,.08)}
+.mission strong{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.custom-grid{display:grid;gap:10px}
+.custom-input,.custom-textarea{
+  width:100%;padding:14px 16px;border-radius:16px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.06);color:var(--text);outline:none;
+}
+.custom-input::placeholder,.custom-textarea::placeholder{color:rgba(182,194,234,.72)}
+.custom-textarea{resize:vertical;min-height:130px}
+#customizationContent{
+  overflow:hidden;
+  max-height:0;
+  opacity:0;
+  transition:max-height .35s ease,opacity .35s ease,margin-top .35s ease;
+}
+#customizationContent.show{
+  opacity:1;
+  max-height:400px;
+  margin-top:12px;
+}
+.custom-goals-container{display:grid;gap:8px}
+.goal-item{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.04);padding:4px 4px 4px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.08)}
+.goal-item.dragging{opacity:.4}
+.drag-handle{cursor:grab;font-size:18px;color:var(--muted);user-select:none;touch-action:none}
+.goal-input{flex-grow:1;background:transparent;border:none;color:var(--text);padding:8px;outline:none;font-size:14px}
+.remove-goal-btn{width:30px;height:30px;border-radius:8px;background:transparent;color:var(--muted);cursor:pointer;font-size:20px;display:grid;place-items:center;border:none}
+.remove-goal-btn:hover{background:rgba(255,95,122,.15);color:var(--danger)}
+#addGoalBtn{justify-self:start;padding:10px 14px;font-size:13px;
+}
+.tasks-wrap-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;font-weight:900;font-size:14px;color:var(--muted);gap:8px;flex-wrap:wrap}
+.progress-badge{padding:8px 10px;border-radius:999px;background:rgba(255,255,255,.06);font-size:12px;color:var(--text);border:1px solid rgba(255,255,255,.06)}
+.task{width:100%;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;padding:14px;border-radius:18px;background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));margin-bottom:10px;cursor:pointer;border:1px solid rgba(255,255,255,.06);transition:.18s transform,.18s box-shadow,.18s border-color;color:var(--text);text-align:left}
+.task:hover{transform:translateY(-1px)}
+.task:active{transform:scale(.985)}
+.task-icon{width:40px;height:40px;border-radius:14px;display:grid;place-items:center;font-size:18px;background:rgba(255,255,255,.08);box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
+.task-text{display:grid;gap:2px}.task-name{font-weight:900;font-size:14px}.task-desc{font-size:12px;color:var(--muted)}
+.task-check{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-weight:900;background:rgba(255,255,255,.08);color:transparent;border:1px solid rgba(255,255,255,.08)}
+.task.done{background:linear-gradient(135deg, rgba(124,255,107,.95), rgba(68,224,178,.92));color:#072116;font-weight:900;border-color:rgba(255,255,255,.28);box-shadow:0 14px 26px rgba(68,224,178,.18)}
+.task.done .task-desc{color:rgba(7,33,22,.72)}.task.done .task-check{background:#0b6b4d;color:white;border-color:#0b6b4d}
+.helper{font-size:12px;color:var(--muted);text-align:center;margin-top:10px}
+.button-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.toggle-btn{cursor:pointer;border:none;font-weight:900;font-size:12px;padding:8px 12px;border-radius:999px;background:rgba(255,255,255,.06);color:var(--text);border:1px solid rgba(255,255,255,.06)}
+.toast{position:fixed;left:50%;bottom:calc(18px + var(--safe-bottom));transform:translateX(-50%) translateY(24px);background:linear-gradient(135deg,var(--accent-3),var(--accent-2));color:white;padding:12px 16px;border-radius:999px;font-weight:900;font-size:13px;box-shadow:0 14px 28px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:.22s ease;z-index:40}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.overlay{position:fixed;inset:0;background:rgba(8,12,24,.74);display:grid;place-items:center;opacity:0;pointer-events:none;transition:.25s ease;z-index:50;padding:20px}
+.overlay.show{opacity:1;pointer-events:auto}
+.modal-card{width:min(92vw,380px);padding:24px;border-radius:28px;background:linear-gradient(135deg, rgba(124,255,107,.18), rgba(122,124,255,.18));border:1px solid rgba(255,255,255,.1);backdrop-filter:blur(16px);text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.35)}
+.modal-emoji{font-size:56px;margin-bottom:8px;animation:bounce 1.2s ease-in-out infinite}
+.modal-title{font-size:28px;font-weight:950;letter-spacing:-.05em}.modal-sub{margin-top:8px;color:var(--muted);font-weight:700;line-height:1.4}
+.levelup-btn{margin-top:16px;background:linear-gradient(135deg,var(--accent),var(--gold));color:#092117;width:100%}
+.install-banner{display:none}
+.share-card{padding:0; background: var(--bg-2); border-color: var(--accent-2);}
+.share-content{padding: 30px 20px; text-align: center;}
+.share-title{font-size: 32px; font-weight: 950; letter-spacing: -.05em; background: linear-gradient(135deg, var(--accent), var(--gold)); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent;}
+.share-app-name{margin-top: 4px; font-weight: 800; color: var(--muted);}
+#shareBtn{border-radius: 0 0 28px 28px;}
+.install-banner.show{display:block}
+.onboarding-steps{display:grid;gap:12px;text-align:left;margin-top:14px}
+.step{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start;padding:12px;border-radius:18px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.06)}
+.step-num{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,var(--accent),var(--gold));color:#082218;font-weight:950}
+.confetti{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:45}
+.piece{position:absolute;width:10px;height:14px;border-radius:4px;opacity:0;animation:fall 1000ms ease-out forwards}
+@keyframes shimmer{100%{transform:translateX(100%)}}
+@keyframes floaty{50%{transform:rotate(8deg) translateY(-5px)}}
+@keyframes bounce{50%{transform:translateY(-6px) scale(1.06)}}
+@keyframes fall{0%{opacity:1;transform:translate(0,0) rotate(0)}100%{opacity:0;transform:translate(var(--x), var(--y)) rotate(320deg)}}
+@media (max-width:520px){
+  .app{padding:calc(10px + var(--safe-top)) 10px calc(24px + var(--safe-bottom))}
+  .hero h1{font-size:30px}
+  .calendar{grid-template-columns:repeat(5,1fr)}
+  .button-row,.stats-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="confetti" id="confetti"></div>
+<div class="app">
+  <div class="hero">
+    <h1 id="heroTitle">🔥 Disciplina PRO</h1>
+    <p id="msg"></p>
+    <div class="top">
+      <div class="top-left">
+        <div id="level" class="pill">Lv 1</div>
+        <button class="install-btn" id="installBtn" type="button" hidden data-i18n="install_app">Instalar app</button>
+      </div>
+      <div class="top-right">
+        <span id="xp">0 XP</span>
+        <span class="hearts" id="hearts">❤️❤️❤️</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card install-banner" id="installBanner">
+    <div class="tasks-wrap-title"><span data-i18n="app_mode">Modo app</span><span class="progress-badge">PWA</span></div>
+    <div class="helper" style="margin-top:0;text-align:left" data-i18n="install_banner_helper">Instale na tela inicial para usar como app, sem Play Store nem App Store.</div>
+    <div style="margin-top:12px" class="button-row">
+      <button class="secondary-btn" id="bannerInstallBtn" type="button" data-i18n="install_now">Instalar agora</button>
+      <button class="ghost-btn" id="dismissInstallBannerBtn" type="button" data-i18n="not_now">Agora não</button>
+    </div>
+  </div>
+
+  <div class="card mascot-card">
+    <div class="mascot-wrap">
+      <div class="mascot-face" id="mascotFace">😐</div>
+      <div class="mascot-text">
+        <div class="mascot-title" data-i18n="mascot_title">Sparky, sua coach</div>
+        <div class="mascot-message" id="mascotMessage">Vamos fechar esse dia.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mission"><strong data-i18n="mission_of_the_day">Missão do dia</strong><div id="mission"></div></div>
+
+  <div class="card">
+    <div class="tasks-wrap-title"><span data-i18n="customization">Personalização</span><button id="toggleCustomizationBtn" class="toggle-btn" type="button" data-i18n="edit">Editar</button></div>
+    <div id="customizationContent">
+      <div class="helper" style="margin-top:0;text-align:left" data-i18n="customization_helper">Edite o nome do desafio e personalize as metas para usar o app do seu jeito.</div>
+      <div class="custom-grid">
+        <input id="challengeNameInput" class="custom-input" type="text" placeholder="Nome do desafio" data-i18n-placeholder="challenge_name_placeholder" />
+        <div id="goalsContainer" class="custom-goals-container"></div>
+        <button id="addGoalBtn" class="ghost-btn" type="button" data-i18n="add_goal">+ Adicionar meta</button>
+        <div class="button-row">
+          <button class="secondary-btn" id="saveCustomizationBtn" type="button" data-i18n="save_customization">Salvar personalização</button>
+          <button class="ghost-btn" id="resetCustomizationBtn" type="button" data-i18n="restore_default">Restaurar padrão</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="notificationsCard">
+    <div class="tasks-wrap-title"><span data-i18n="reminders">Lembretes</span><span class="progress-badge" data-i18n="reminders_badge">Push</span></div>
+    <div class="helper" style="margin-top:0;text-align:left" data-i18n="reminders_helper">Ative as notificações para receber um lembrete diário e não quebrar sua streak.</div>
+    <div style="margin-top:12px">
+      <button class="secondary-btn" id="enableNotificationsBtn" type="button" data-i18n="enable_reminders">Ativar lembretes</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="tasks-wrap-title"><span data-i18n="xp_level">XP do nível</span><span class="progress-badge" id="xpBadge">0/50</span></div>
+    <div class="xpbar"><div class="xpfill" id="xpFill"></div></div>
+  </div>
+
+  <div class="stats-grid">
+    <div class="card stat-card"><div class="stat-label" data-i18n="days_completed">Dias completos</div><div class="stat-value" id="daysCount">0</div></div>
+    <div class="card stat-card"><div class="stat-label" data-i18n="current_streak">Streak atual</div><div class="stat-value" id="streakCount">0</div></div>
+  </div>
+
+  <div class="card calendar-wrap">
+    <div class="calendar-head">
+      <div class="calendar-title" data-i18n="progress_map">Mapa de progresso</div>
+      <div class="calendar-sub" id="calendarSub">30 dias</div>
+    </div>
+    <div class="calendar" id="calendar"></div>
+  </div>
+
+  <div class="card">
+    <div class="tasks-wrap-title"><span data-i18n="todays_checklist">Checklist de hoje</span><span class="progress-badge" id="progressBadge">0/6</span></div>
+    <div id="tasks"></div>
+    <div class="helper" id="helperText">Marque os itens para liberar o botão.</div>
+    <div class="helper"><button class="progress-badge" id="unlockTodayBtn" type="button" data-i18n="unlock_today">Destravar hoje</button></div>
+  </div>
+
+  <button class="btn" id="btn" type="button">Fechar dia</button>
+</div>
+
+<div class="toast" id="toast">Boa!</div>
+
+<div class="overlay" id="levelupModal">
+  <div class="modal-card">
+    <div class="modal-emoji">🔥</div>
+    <div class="modal-title" data-i18n="levelup_title">LEVEL UP</div>
+    <div class="modal-sub" id="levelupText">Você subiu de nível.</div>
+    <button class="levelup-btn" id="closeLevelupBtn" type="button" data-i18n="continue">Continuar</button>
+  </div>
+</div>
+
+<div class="overlay" id="onboardingModal">
+  <div class="modal-card">
+    <div class="modal-emoji">🚀</div>
+    <div class="modal-title" data-i18n="welcome">Bem-vinda</div>
+    <div class="modal-sub" data-i18n="onboarding_sub">Seu desafio funciona como um app instalável no celular e salva tudo localmente.</div>
+    <div class="onboarding-steps">
+      <div class="step"><div class="step-num">1</div><div data-i18n="onboarding_step1">Marque as metas do dia.</div></div>
+      <div class="step"><div class="step-num">2</div><div data-i18n="onboarding_step2">Quando tudo estiver completo, feche o dia.</div></div>
+      <div class="step"><div class="step-num">3</div><div data-i18n="onboarding_step3">Personalize o nome e as metas quando quiser.</div></div>
+    </div>
+    <button class="levelup-btn" id="closeOnboardingBtn" type="button" data-i18n="start">Começar</button>
+  </div>
+</div>
+
+<div class="overlay" id="winModal">
+  <div class="modal-card">
+    <div class="modal-emoji">🏆</div>
+    <div class="modal-title" data-i18n="win_title">30 dias completos</div>
+    <div class="modal-sub" data-i18n="win_sub">Você concluiu o ciclo inteiro. Isso não foi sorte. Foi constância.</div>
+    <button class="levelup-btn" id="closeWinBtn" type="button" data-i18n="win_btn">Continuar vendo</button>
+  </div>
+</div>
+
+<script src="app.js" defer></script>
+</body>
+</html>

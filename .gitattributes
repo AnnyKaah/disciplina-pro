@@ -1,0 +1,11 @@
+# Defina o comportamento padrão para detecção de arquivos de texto.
+* text=auto
+
+# Force os arquivos de texto a sempre usarem LF (Line Feed) no repositório.
+*.html eol=lf
+*.css eol=lf
+*.js eol=lf
+*.json eol=lf
+*.md eol=lf
+*.svg eol=lf
+*.xml eol=lf
