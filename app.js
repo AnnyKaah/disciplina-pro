@@ -526,12 +526,6 @@ document.getElementById("closeLevelupBtn").onclick = () => {
   document.getElementById("levelupModal").classList.remove("show");
 };
 
-document.getElementById("closeOnboardingBtn").onclick = () => {
-  state.onboardingSeen = true;
-  save();
-  document.getElementById("onboardingModal").classList.remove("show");
-};
-
 document.getElementById("closeWinBtn").onclick = () => {
   document.getElementById("winModal").classList.remove("show");
 };
@@ -553,7 +547,16 @@ document.getElementById("shareBtn").onclick = async () => {
   } catch (err) {
     console.error("Erro ao compartilhar:", err);
   }
+};
+
+document.getElementById("closeShareBtn").onclick = () => {
   document.getElementById("shareModal").classList.remove("show");
+};
+
+document.getElementById("startChallengeBtn").onclick = () => {
+  state.onboardingSeen = true;
+  save();
+  document.getElementById("welcomeScreen").classList.remove("show");
 };
 
 document.getElementById("installBtn").onclick = triggerInstall;
@@ -596,8 +599,8 @@ document.getElementById("btn").onclick = () => {
 
   const streakMilestones = [3, 7, 15, 30];
   if (streakMilestones.includes(state.streak)) {
-    const shareTitle = document.querySelector('#shareContent .share-title');
-    shareTitle.textContent = `🔥 ${state.streak} ${i18n.days_suffix} de Streak!`;
+    const shareTitleText = document.getElementById('shareTitleText');
+    shareTitleText.textContent = `🔥 ${state.streak} ${i18n.days_suffix} de Streak!`;
     setTimeout(() => {
       document.getElementById("shareModal").classList.add("show");
     }, 800);
@@ -644,4 +647,8 @@ updateMissedDay();
 applyTranslations();
 render();
 setupGoalsEditor();
-if (!state.onboardingSeen) document.getElementById("onboardingModal").classList.add("show");
+if (!state.onboardingSeen) {
+  document.getElementById("welcomeScreen").classList.add("show");
+} else {
+  document.getElementById("welcomeScreen").classList.remove("show");
+}
