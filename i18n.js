@@ -166,7 +166,9 @@ const translations = {
       partial: ["Good. Keep it up.", "You're on the right track.", "Don't stop now, consistency is key.", "Another step taken!"],
       almost: ["You're almost there!", "Just a little more, don't give up now.", "The final stretch! Let's go all in."],
       done: ["All set. Close this day now.", "Well done! Day completed. ✨"],
-      locked: ["Today is done. More tomorrow.", "Rest. You've earned it."]
+      locked: ["Today is done. More tomorrow.", "Rest. You've earned it."],
+      thoughtful: ["A mixed day, but progress was made.", "Analyze what went wrong and prepare for tomorrow.", "Every attempt is a lesson learned."],
+      encouragement: ["Effort is what counts. Don't be discouraged.", "Failure is part of the process. Try again tomorrow.", "You tried. That's the most important thing."]
     }
   },
   pt: {
@@ -336,7 +338,9 @@ const translations = {
       partial: ["Boa. Continua assim.", "Você está no caminho certo.", "Não pare agora, a consistência é a chave.", "Mais um passo dado!"],
       almost: ["Você está quase lá!", "Falta pouco, não desista agora.", "A reta final! Vamos com tudo."],
       done: ["Tudo pronto. Fecha esse dia agora.", "Mandou bem! Dia concluído. ✨"],
-      locked: ["Hoje já foi. Amanhã tem mais.", "Descanse. Você mereceu."]
+      locked: ["Hoje já foi. Amanhã tem mais.", "Descanse. Você mereceu."],
+      thoughtful: ["Um dia misto, mas houve progresso.", "Analise o que deu errado e se prepare para amanhã.", "Toda tentativa é uma lição aprendida."],
+      encouragement: ["O esforço é o que conta. Não desanime.", "A falha faz parte do processo. Tente de novo amanhã.", "Você tentou. Isso é o mais importante."]
     }
   }
 };

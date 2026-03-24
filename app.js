@@ -307,7 +307,7 @@ function updateProgressUI() {
     helper.innerHTML = i18n.helper_text_partial_done.replace('{done}', done).replace('{total}', total);
   }
 
-  updateMascot(done, total, locked);
+  updateMascot(done, failed, total, locked);
 }
 
 // ── RENDER TASKS ───────────────────────────────────────────
@@ -535,21 +535,27 @@ document.getElementById('btn').onclick = () => {
 };
 
 // ── MASCOT ─────────────────────────────────────────────────
-function updateMascot(done, total, locked) {
+function updateMascot(done, failed, total, locked) {
   const face = document.getElementById('mascotFace');
   const msg  = document.getElementById('mascotMessage');
   let mood = 'neutral';
 
   if (state.day === 0 && !locked) {
     face.textContent = '👋';
-    msg.textContent = i18n.mascot_welcome;
     mood = 'welcome';
+    msg.textContent = i18n.mascot_welcome;
   } else if (locked) {
     face.textContent = '😴'; mood = 'locked';
     msg.textContent = randomItem(get_MASCOT_MESSAGES().locked);
   } else if (done === total && total > 0) {
     face.textContent = '😄'; mood = 'done';
     msg.textContent = randomItem(get_MASCOT_MESSAGES().done);
+  } else if (done > 0 && failed > 0) {
+    face.textContent = '🤔'; mood = 'thoughtful';
+    msg.textContent = randomItem(get_MASCOT_MESSAGES().thoughtful);
+  } else if (failed > 0 && done === 0) {
+    face.textContent = '🧐'; mood = 'encouragement';
+    msg.textContent = randomItem(get_MASCOT_MESSAGES().encouragement);
   } else if (done === total - 1 && total > 1) {
     face.textContent = '🤩'; mood = 'almost';
     msg.textContent = randomItem(get_MASCOT_MESSAGES().almost);
