@@ -7,478 +7,570 @@
 <link rel="manifest" href="manifest.json" />
 <link rel="apple-touch-icon" href="icon-192.png" />
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<meta name="theme-color" content="#44e0b2" />
-<link rel="apple-touch-startup-image" href="icon-512.png" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)" />
-<link rel="apple-touch-startup-image" href="icon-512.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)" />
+<meta name="theme-color" content="#0d0d14" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Disciplina PRO" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --accent:#7cff6b;
-  --accent-2:#44e0b2;
-  --accent-3:#7a7cff;
-  --gold:#ffd54a;
-  --danger:#ff5f7a;
-  --shadow:0 18px 40px rgba(0,0,0,.35);
-  --shadow-strong:0 18px 40px rgba(68,224,178,.22);
-  --safe-top: env(safe-area-inset-top, 0px);
-  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --c-neon:#b8ff65;--c-cyan:#00e5c8;--c-purple:#9b6dff;--c-amber:#ffb830;--c-red:#ff4f6d;--c-partial:#ffd166;
+  --safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px);
+  --r-card:20px;
 }
-.theme-dark {
-  --bg-1:#0b1023;
-  --bg-2:#15103a;
-  --card-bg:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
-  --card-bg-hover:linear-gradient(180deg, rgba(255,255,255,.1), rgba(255,255,255,.06));
-  --stroke:rgba(255,255,255,.08);
-  --text:#f8fbff;
-  --muted:#b6c2ea;
-  --theme-btn-bg: rgba(255,255,255,.06);
-  --mascot-shadow: drop-shadow(0 8px 18px rgba(122,124,255,.22));
-  --mascot-shadow-happy: drop-shadow(0 8px 22px rgba(124,255,107,.28));
-  --icon-nested-bg: rgba(255,255,255,.04);
+.theme-dark{
+  --bg:#0d0d14;--bg-2:#11111c;--surface:#181827;--surface-2:#1e1e30;
+  --border:rgba(255,255,255,.07);--border-hi:rgba(255,255,255,.14);
+  --text:#f0f0fa;--text-2:#8888aa;--text-3:#555570;--overlay:rgba(0,0,0,.85);
+  --shadow:0 2px 24px rgba(0,0,0,.5);
 }
-.theme-light {
-  --bg-1:#f0f2f5;
-  --bg-2:#e8ebf2;
-  --card-bg:linear-gradient(180deg, rgba(255,255,255,.7), rgba(255,255,255,.4));
-  --card-bg-hover:linear-gradient(180deg, rgba(255,255,255,.8), rgba(255,255,255,.5));
-  --stroke:rgba(0,0,0,.08);
-  --text:#1c1e21;
-  --muted:#65676b;
-  --shadow:0 18px 40px rgba(0,0,0,.12);
-  --shadow-strong:0 18px 40px rgba(68,224,178,.25);
-  --theme-btn-bg: rgba(0,0,0,.06);
-  --mascot-shadow: drop-shadow(0 4px 10px rgba(0,0,0,.15));
-  --mascot-shadow-happy: drop-shadow(0 4px 12px rgba(68,224,178,.3));
-  --icon-nested-bg: rgba(0,0,0,.04);
+.theme-light{
+  --bg:#f2f2f8;--bg-2:#eaeaf2;--surface:#ffffff;--surface-2:#f0f0f8;
+  --border:rgba(0,0,0,.07);--border-hi:rgba(0,0,0,.14);
+  --text:#111120;--text-2:#555570;--text-3:#aaaacc;--overlay:rgba(0,0,0,.55);
+  --shadow:0 2px 16px rgba(0,0,0,.1);
 }
-*{box-sizing:border-box}
-html,body{min-height:100%}
-body{
-  margin:0;
-  font-family:Inter,system-ui,sans-serif;
-  color:var(--text);
-  background:
-    radial-gradient(circle at 15% 20%, rgba(124,255,107,.12), transparent 18%),
-    radial-gradient(circle at 85% 10%, rgba(122,124,255,.18), transparent 22%),
-    radial-gradient(circle at 50% 100%, rgba(68,224,178,.12), transparent 24%),
-    linear-gradient(180deg, var(--bg-1), var(--bg-2));
-  overflow-x:hidden;
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:'Syne',system-ui,sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden;transition:background .3s,color .3s}
+button,input,textarea{font:inherit;border:none;background:none}
+button{cursor:pointer}
+
+/* NOISE */
+body::before{content:'';position:fixed;inset:0;z-index:0;opacity:.4;pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.04'/%3E%3C/svg%3E");}
+
+.glow-1,.glow-2{position:fixed;border-radius:50%;filter:blur(90px);pointer-events:none;z-index:0;opacity:.15}
+.glow-1{width:400px;height:400px;background:var(--c-purple);top:-140px;right:-100px}
+.glow-2{width:350px;height:350px;background:var(--c-neon);bottom:5%;left:-120px}
+
+.app{max-width:540px;margin:auto;padding:calc(16px + var(--safe-top)) 14px calc(36px + var(--safe-bottom));display:grid;gap:12px;position:relative;z-index:1}
+
+/* SPLASH */
+#splashScreen{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;transition:opacity .4s,visibility .4s}
+#splashScreen.hidden{opacity:0;visibility:hidden;pointer-events:none}
+.splash-logo{font-size:56px;animation:pulse-scale 1.6s ease-in-out infinite}
+.splash-name{font-size:20px;font-weight:800;letter-spacing:.1em;color:var(--c-neon)}
+.splash-bar{width:100px;height:3px;background:var(--surface-2);border-radius:99px;overflow:hidden}
+.splash-fill{height:100%;background:linear-gradient(90deg,var(--c-neon),var(--c-cyan));animation:splash-load .9s ease forwards .2s;width:0}
+@keyframes splash-load{to{width:100%}}
+
+/* CARD */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);padding:18px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+
+/* HERO */
+.hero{padding:22px 20px 18px;background:linear-gradient(140deg,#0f1a2e 0%,#1a0e38 50%,#091e20 100%);border:1px solid rgba(255,255,255,.09);border-radius:26px;box-shadow:0 4px 40px rgba(0,0,0,.5)}
+.theme-light .hero{background:linear-gradient(140deg,#1c2a46,#2a1258,#0b2828)}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 85% 10%,rgba(184,255,101,.14) 0%,transparent 50%),radial-gradient(ellipse at 5% 90%,rgba(0,229,200,.1) 0%,transparent 55%)}
+.hero-inner{position:relative;z-index:1}
+.hero-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.hero-name{font-size:11px;font-weight:700;color:rgba(255,255,255,.4);letter-spacing:.12em;text-transform:uppercase;margin-bottom:3px}
+.hero-title{font-size:24px;font-weight:800;color:#fff;line-height:1.1;letter-spacing:-.02em}
+.hero-title .accent{color:var(--c-neon)}
+.hero-badge{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.11);border-radius:12px;padding:8px 12px;flex-shrink:0}
+.lv-text{font-size:11px;font-weight:800;color:var(--c-neon);font-family:'Space Mono',monospace;letter-spacing:.05em}
+.hearts{font-size:15px;display:flex;gap:1px}
+.hero-stats{display:flex;gap:8px;margin-top:14px}
+.hstat{flex:1;min-width:0;background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:10px 12px}
+.hstat-label{font-size:10px;font-weight:700;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px}
+.hstat-val{font-size:20px;font-weight:800;font-family:'Space Mono',monospace;line-height:1;color:#fff}
+.hstat-val.neon{color:var(--c-neon)}.hstat-val.cyan{color:var(--c-cyan)}.hstat-val.amber{color:var(--c-amber)}
+.hero-xp{margin-top:14px}
+.hero-xp-top{display:flex;justify-content:space-between;font-size:10px;font-weight:700;color:rgba(255,255,255,.38);margin-bottom:6px;font-family:'Space Mono',monospace}
+.xpbar{height:5px;background:rgba(0,0,0,.4);border-radius:99px;overflow:hidden}
+.xpfill{height:100%;background:linear-gradient(90deg,var(--c-neon),var(--c-cyan));border-radius:99px;transition:width .6s cubic-bezier(.34,1.56,.64,1);box-shadow:0 0 8px rgba(184,255,101,.5)}
+
+/* MASCOT */
+.mascot-wrap{display:flex;align-items:center;gap:14px;padding:14px 18px;cursor:pointer;user-select:none;transition:transform .15s}
+.mascot-wrap:active{transform:scale(.98)}
+.mascot-avi{width:50px;height:50px;border-radius:15px;background:var(--surface-2);border:1px solid var(--border-hi);display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;transition:transform .3s cubic-bezier(.34,1.56,.64,1)}
+.mascot-avi.bounce{animation:m-bounce .5s cubic-bezier(.34,1.56,.64,1)}
+@keyframes m-bounce{50%{transform:scale(1.3) rotate(10deg)}}
+.mascot-info{flex:1;min-width:0}
+.mascot-name{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--text-3);margin-bottom:4px}
+.mascot-msg{font-size:14px;font-weight:700;color:var(--text);line-height:1.35;transition:opacity .18s}
+.mascot-hint{font-size:11px;color:var(--text-3);margin-top:2px}
+
+/* MISSION */
+.mission-wrap{padding:14px 18px}
+.mission-tag{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:var(--c-amber);display:flex;align-items:center;gap:5px;margin-bottom:6px}
+.mission-tag::before{content:'⚡'}
+.mission-body{font-size:14px;font-weight:600;color:var(--text-2);line-height:1.45}
+
+/* MAP */
+.map-wrap{padding:16px 18px}
+.map-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.map-title{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--text)}
+.map-sub{font-size:12px;font-weight:700;color:var(--text-3);font-family:'Space Mono',monospace}
+.calendar{display:grid;grid-template-columns:repeat(10,1fr);gap:5px}
+.cal-day{aspect-ratio:1;border-radius:7px;background:var(--surface-2);border:1px solid var(--border);transition:background .2s,border-color .2s;position:relative}
+.cal-day.today{border-color:var(--c-cyan);background:rgba(0,229,200,.12);box-shadow:0 0 8px rgba(0,229,200,.3);animation:today-pulse 2s ease-in-out infinite}
+@keyframes today-pulse{0%,100%{box-shadow:0 0 8px rgba(0,229,200,.25)}50%{box-shadow:0 0 16px rgba(0,229,200,.45)}}
+.cal-day.done{background:var(--c-neon);border-color:var(--c-neon);box-shadow:0 0 6px rgba(184,255,101,.4)}
+.cal-day.partial{background:var(--c-partial);border-color:var(--c-partial)}
+.cal-day.miss{background:rgba(255,79,109,.12);border-color:rgba(255,79,109,.25)}
+.cal-day.miss::after{content:'×';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:900;color:var(--c-red)}
+.map-legend{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:10px;font-weight:700;color:var(--text-3)}
+.legend-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+
+/* CHECKLIST */
+.checklist-wrap{padding:16px 18px}
+.sec-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.sec-title{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--text)}
+.prog-pill{font-size:12px;font-weight:800;font-family:'Space Mono',monospace;background:var(--surface-2);border:1px solid var(--border);border-radius:99px;padding:4px 10px;color:var(--text-2);transition:background .2s,color .2s,border-color .2s}
+.prog-pill.all-done{background:rgba(184,255,101,.14);border-color:var(--c-neon);color:var(--c-neon)}
+.prog-pill.partial-done{background:rgba(255,209,102,.14);border-color:var(--c-partial);color:var(--c-partial)}
+.tasks-list{display:grid;gap:8px}
+
+/* TASK ITEM */
+.task-item{display:flex;align-items:center;gap:12px;padding:13px 14px;background:var(--surface-2);border:1px solid var(--border);border-radius:15px;text-align:left;width:100%;position:relative;overflow:hidden;transition:transform .12s ease,background .2s,border-color .2s}
+.task-item:active{transform:scale(.985)}
+.task-item::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--border);border-radius:3px 0 0 3px;transition:background .2s,box-shadow .2s}
+.task-item.t-done{background:rgba(184,255,101,.055);border-color:rgba(184,255,101,.22)}
+.task-item.t-done::before{background:var(--c-neon);box-shadow:0 0 8px rgba(184,255,101,.5)}
+.task-item.t-skip{opacity:.45}
+.task-item.t-skip::before{background:var(--text-3)}
+.t-icon{font-size:22px;line-height:1;flex-shrink:0;width:34px;text-align:center}
+.t-body{flex:1;min-width:0}
+.t-name{font-size:14px;font-weight:700;color:var(--text);line-height:1.2}
+.task-item.t-done .t-name{text-decoration:line-through;color:var(--text-3)}
+.t-desc{font-size:11px;color:var(--text-3);margin-top:2px}
+.t-actions{display:flex;gap:5px;flex-shrink:0}
+.t-check,.t-skip-btn{width:28px;height:28px;border-radius:8px;background:var(--surface);border:2px solid var(--border-hi);display:flex;align-items:center;justify-content:center;font-size:12px;color:transparent;transition:all .2s cubic-bezier(.34,1.56,.64,1);flex-shrink:0}
+.task-item.t-done .t-check{background:var(--c-neon);border-color:var(--c-neon);color:#051200;transform:scale(1.1);font-weight:900}
+.t-skip-btn{color:var(--text-3);font-size:14px}
+.t-skip-btn:hover,.t-skip-btn:focus{border-color:var(--c-red);color:var(--c-red)}
+.task-item.t-skip .t-skip-btn{background:rgba(255,79,109,.15);border-color:var(--c-red);color:var(--c-red)}
+.helper-msg{font-size:13px;color:var(--text-2);margin-top:12px;line-height:1.45}
+
+/* Estilo para o item de tarefa marcado como 'falhou' */
+.task-item.t-fail {
+  background: rgba(255, 184, 48, 0.08);
+  border-color: rgba(255, 184, 48, 0.25);
 }
-body::before,body::after{
-  content:"";
-  position:fixed; /* Glows */
-  width:260px;height:260px;border-radius:50%;filter:blur(46px);pointer-events:none;opacity:.35;z-index:0;
+.task-item.t-fail::before {
+  background: var(--c-amber);
+  box-shadow: 0 0 8px rgba(255, 184, 48, 0.4);
 }
-body::before{top:-80px;left:-60px;background:rgba(122,124,255,.28)}
-body::after{right:-60px;bottom:10%;background:rgba(124,255,107,.18)}
-button,input,textarea{font:inherit}
-button{border:none}
-.app{
-  max-width:560px;
-  margin:auto;
-  padding:calc(12px + var(--safe-top)) 12px calc(24px + var(--safe-bottom));
-  display:grid;
-  gap:14px;
-  position:relative;
-  z-index:1;
+.task-item.t-fail .t-name {
+  text-decoration: line-through;
+  text-decoration-color: var(--c-amber);
+  color: var(--text-3);
 }
-.card{
-  background:var(--card-bg);
-  border:1px solid var(--stroke);
-  backdrop-filter:blur(16px);
-  -webkit-backdrop-filter:blur(16px);
-  border-radius:24px;
-  padding:16px;
-  box-shadow:var(--shadow);
+
+/* Estilo para o novo botão 'falhou' (!) */
+.t-fail-btn {
+  width: 28px; height: 28px; border-radius: 8px;
+  background: var(--surface);
+  border: 2px solid var(--border-hi);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 900;
+  color: var(--text-3);
+  transition: all .2s cubic-bezier(.34,1.56,.64,1);
+  flex-shrink: 0;
 }
-.hero{
-  position:relative;
-  overflow:hidden;
-  padding:24px 18px 18px;
-  background:
-    radial-gradient(circle at top right, rgba(255,213,74,.26), transparent 24%),
-    radial-gradient(circle at left center, rgba(124,255,107,.22), transparent 35%),
-    linear-gradient(135deg,#7cff6b 0%,#44e0b2 45%,#7a7cff 100%);
-  color:#07131b;
-  border-radius:28px;
-  box-shadow:var(--shadow-strong);
+.t-fail-btn:hover, .t-fail-btn:focus {
+  border-color: var(--c-amber);
+  color: var(--c-amber);
 }
-.hero::after{
-  content:"⚡";
-  position:absolute;
-  right:14px;top:10px;
-  font-size:44px;
-  opacity:.9;
-  transform:rotate(8deg);
-  animation:floaty 2.8s ease-in-out infinite;
+.task-item.t-fail .t-fail-btn {
+  background: rgba(255, 184, 48, 0.15);
+  border-color: var(--c-amber);
+  color: var(--c-amber);
 }
-.hero h1{margin:0;font-size:34px;line-height:.92;font-weight:950;letter-spacing:-.05em}
-.hero p{margin:8px 0 0;font-weight:700;font-size:14px;max-width:32ch;opacity:.88}
-.hero-footer{display:flex;justify-content:space-between;align-items:center;margin-top:18px;gap:10px;flex-wrap:wrap}
-.hero-footer-left,.hero-footer-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-#xp{display:inline-flex;align-items:center;gap:6px;background:#08131b;color:#d8fff1;padding:8px 12px;border-radius:999px;font-weight:900;box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
-.pill{background:rgba(7,19,27,.2);border:1px solid rgba(7,19,27,.1);padding:8px 12px;border-radius:999px;font-weight:900;color:#07131b}
-.hearts{font-size:19px;filter:drop-shadow(0 2px 8px rgba(255,95,122,.25))}
-.ghost-btn,.btn,.levelup-btn,.install-btn,.secondary-btn{
-  border:none;border-radius:18px;padding:14px 16px;font-weight:900;cursor:pointer;transition:.18s transform,.18s filter,.18s opacity,.18s box-shadow;
+.helper-msg strong{color:var(--text)}
+
+/* CLOSE DAY */
+.close-wrap{padding:18px}
+.day-summary{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px}
+.sum-chip{font-size:11px;font-weight:800;font-family:'Space Mono',monospace;padding:5px 10px;border-radius:99px;border:1px solid var(--border);background:var(--surface-2);color:var(--text-2)}
+.sum-chip.c-done{background:rgba(184,255,101,.12);border-color:rgba(184,255,101,.4);color:var(--c-neon)}
+.sum-chip.c-fail {
+  background: rgba(255, 184, 48, 0.1);
+  border-color: rgba(255, 184, 48, 0.3);
+  color: var(--c-amber);
 }
-.ghost-btn:active,.btn:active,.levelup-btn:active,.install-btn:active,.secondary-btn:active{transform:scale(.98)}
-.ghost-btn{background:var(--theme-btn-bg);color:var(--text);border:1px solid var(--stroke)}
-.install-btn{background:rgba(7,19,27,.2);color:#08131b;border:1px solid rgba(7,19,27,.1)}
-.btn{width:100%;padding:18px;font-size:17px;background:linear-gradient(135deg,var(--accent),var(--accent-2) 55%, var(--gold));color:#082218;box-shadow:var(--shadow-strong)}
-.btn:disabled{opacity:.45;filter:saturate(.7);cursor:not-allowed}
-.btn:not(:disabled){animation:pulse-glow 2.5s infinite ease-in-out}
-@keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 10px 25px rgba(68,224,178,.2); }
-  50% { box-shadow: 0 14px 35px rgba(68,224,178,.35); transform: scale(1.01); }
-}
-.secondary-btn{background:linear-gradient(135deg,rgba(122,124,255,.22),rgba(68,224,178,.16));color:var(--text);width:100%}
-.mascot-card{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px}
-.mascot-card{cursor:pointer;user-select:none;transition:background .2s ease}
-.mascot-card:hover{background:var(--card-bg-hover)}
-.mascot-wrap{display:flex;align-items:center;gap:12px}
-.mascot-face{font-size:42px;line-height:1;filter:var(--mascot-shadow);transition:transform .22s ease, filter .22s ease}
-.mascot-face.happy{transform:scale(1.12) rotate(-4deg);filter:var(--mascot-shadow-happy)}
-.mascot-face.warn{transform:translateY(-2px) scale(1.05)}
-.mascot-text{display:grid;gap:4px}
-.mascot-face.pop { animation: mascot-pop 0.4s cubic-bezier(.175,.885,.32,1.275); }
-@keyframes mascot-pop {
-  50% { transform: scale(1.2) rotate(5deg); }
-}
-.mascot-title{font-size:13px;font-weight:900;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
-.mascot-message{font-size:14px;font-weight:800; transition: opacity .15s ease-out;}
-.xpbar{height:10px;border-radius:999px;background:rgba(0,0,0,.2);overflow:hidden;position:relative;box-shadow:inset 0 1px 0 rgba(255,255,255,.1)}
-.xpfill{height:100%;width:0%;border-radius:inherit;background:linear-gradient(90deg,var(--accent),var(--accent-2),var(--gold));box-shadow:0 0 18px rgba(68,224,178,.22);transition:width .45s ease;position:relative}
-.xpfill::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.28),transparent);animation:shimmer 2s linear infinite}
-.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.stat-card{padding:14px 16px;border-radius:22px;background:var(--card-bg);border:1px solid var(--stroke)}
-.stat-label{font-size:12px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.06em}
-.stat-value{font-size:28px;font-weight:950;letter-spacing:-.04em;margin-top:6px}
-.calendar-wrap{padding:0}
-.calendar-head{display:flex;justify-content:space-between;align-items:center;padding:16px 16px 0;gap:10px;flex-wrap:wrap}
-.calendar-title{font-size:14px;font-weight:900;color:var(--muted)}
-.calendar-sub{font-size:12px;color:var(--muted)}
-.calendar{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;padding:14px}
-.day{height:18px;border-radius:999px;background:var(--theme-btn-bg);position:relative;overflow:hidden;box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}
-.day.done{background:linear-gradient(90deg,var(--accent),var(--accent-2))}
-.day.miss{background:linear-gradient(90deg,#ff7b92,var(--danger))}
-.day.today{outline:2px solid rgba(255,213,74,.7);outline-offset:2px}
-.day::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.25),transparent);transform:translateX(-100%)}
-.day.done::after{animation:shimmer 2.2s infinite}
-.mission{background:linear-gradient(135deg, rgba(122,124,255,.2), rgba(68,224,178,.14));padding:14px;border-radius:18px;font-size:13px;border:1px solid var(--stroke)}
-.mission strong{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
-.custom-grid{display:grid;gap:10px}
-.custom-input,.custom-textarea{
-  width:100%;padding:14px 16px;border-radius:16px;border:1px solid var(--stroke);background:var(--theme-btn-bg);color:var(--text);outline:none;
-}
-.custom-input::placeholder,.custom-textarea::placeholder{color:rgba(182,194,234,.72)}
-.custom-textarea{resize:vertical;min-height:130px}
-#settingsContent{
-  overflow:hidden;
-  max-height:0;
-  opacity:0;
-  transition:max-height .35s ease,opacity .35s ease,margin-top .35s ease;
-}
-#settingsContent.show{
-  opacity:1;
-  max-height:800px;
-  margin-top:12px;
-}
-.custom-goals-container{display:grid;gap:8px}
-.goal-item{display:flex;align-items:center;gap:8px;background:var(--icon-nested-bg);padding:4px 4px 4px 12px;border-radius:12px;border:1px solid var(--stroke)}
+.sum-chip.c-skip{background:rgba(255,79,109,.1);border-color:rgba(255,79,109,.3);color:var(--c-red)}
+.btn{width:100%;padding:18px;font-size:17px;font-weight:800;font-family:'Syne',sans-serif;border-radius:16px;background:linear-gradient(135deg,var(--c-neon),var(--c-cyan));color:#071a0f;letter-spacing:.01em;transition:transform .15s,opacity .15s,box-shadow .3s;box-shadow:0 4px 20px rgba(184,255,101,.22)}
+.btn:not(:disabled):hover{transform:translateY(-1px);box-shadow:0 8px 28px rgba(184,255,101,.35)}
+.btn:active{transform:scale(.98)!important}
+.btn:disabled{opacity:.3;cursor:not-allowed;background:var(--surface-2);color:var(--text-3);box-shadow:none}
+.btn.b-partial{background:linear-gradient(135deg,var(--c-partial),var(--c-amber));color:#140800;box-shadow:0 4px 20px rgba(255,185,48,.22)}
+.btn:not(:disabled){animation:btn-breathe 3s ease-in-out infinite}
+@keyframes btn-breathe{0%,100%{box-shadow:0 4px 20px rgba(184,255,101,.18)}50%{box-shadow:0 6px 28px rgba(184,255,101,.38)}}
+.btn.b-locked{background:var(--surface-2);color:var(--text-3);animation:none}
+.unlock-btn{display:none;margin:10px auto 0;font-size:12px;font-weight:700;color:var(--text-3);padding:7px 14px;border-radius:9px;background:var(--surface-2);border:1px solid var(--border);transition:color .2s}
+.unlock-btn:hover{color:var(--text)}
+
+/* STATS MINI */
+.stats-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.scard{padding:16px}
+.scard-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--text-3);margin-bottom:6px}
+.scard-val{font-size:28px;font-weight:800;font-family:'Space Mono',monospace;color:var(--text);line-height:1}
+
+/* SETTINGS */
+.settings-wrap{padding:18px}
+.settings-head{display:flex;align-items:center;justify-content:space-between}
+.toggle-btn{font-size:11px;font-weight:800;letter-spacing:.05em;padding:6px 12px;border-radius:8px;background:var(--surface-2);border:1px solid var(--border);color:var(--text-2);text-transform:uppercase;transition:background .2s,color .2s}
+.settings-body{display:none;margin-top:18px}
+.settings-body.show{display:grid;gap:16px}
+.s-section-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--text-3);margin-bottom:8px}
+.custom-input{width:100%;padding:12px 14px;border-radius:11px;background:var(--surface-2);border:1px solid var(--border);color:var(--text);font-size:14px;font-weight:600;transition:border-color .2s}
+.custom-input:focus{outline:none;border-color:var(--c-cyan)}
+.goals-list{display:grid;gap:7px}
+.goal-item{display:flex;align-items:center;gap:8px;background:var(--surface-2);border:1px solid var(--border);border-radius:11px;padding:9px 12px}
 .goal-item.dragging{opacity:.4}
-.drag-handle{cursor:grab;font-size:18px;color:var(--muted);user-select:none;touch-action:none}
-.goal-input{flex-grow:1;background:transparent;border:none;color:var(--text);padding:8px;outline:none;font-size:14px}
-.remove-goal-btn{width:30px;height:30px;border-radius:8px;background:transparent;color:var(--muted);cursor:pointer;font-size:20px;display:grid;place-items:center;border:none}
-.remove-goal-btn:hover{background:rgba(255,95,122,.15);color:var(--danger)}
-#addGoalBtn{justify-self:start;padding:10px 14px;font-size:13px;
-}
-.tasks-wrap-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;font-weight:900;font-size:14px;color:var(--muted);gap:8px;flex-wrap:wrap}
-.progress-badge{padding:8px 10px;border-radius:999px;background:var(--theme-btn-bg);font-size:12px;color:var(--text);border:1px solid var(--stroke)}
-.task{width:100%;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;padding:14px;border-radius:18px;background:var(--card-bg);margin-bottom:10px;cursor:pointer;border:1px solid var(--stroke);transition:.18s transform,.18s box-shadow,.18s border-color;color:var(--text);text-align:left}
-.task:hover{transform:translateY(-1px)}
-.task:active{transform:scale(.985)}
-.task-icon{width:40px;height:40px;border-radius:14px;display:grid;place-items:center;font-size:18px;background:var(--theme-btn-bg);box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
-.task-text{display:grid;gap:2px}.task-name{font-weight:900;font-size:14px}.task-desc{font-size:12px;color:var(--muted)}
-.task-check{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-weight:900;background:var(--theme-btn-bg);color:transparent;border:1px solid var(--stroke);transform:scale(0);transition:transform .3s cubic-bezier(.175,.885,.32,1.275)}
-.task.done{background:linear-gradient(135deg, rgba(124,255,107,.95), rgba(68,224,178,.92));color:#072116;font-weight:900;border-color:rgba(255,255,255,.28);box-shadow:0 14px 26px rgba(68,224,178,.18)}
-.task.done .task-desc{color:rgba(7,33,22,.72)}.task.done .task-check{background:#0b6b4d;color:white;border-color:#0b6b4d;transform:scale(1)}
-.helper{font-size:12px;color:var(--muted);text-align:center;margin-top:10px}
-.button-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.toggle-btn{cursor:pointer;border:none;font-weight:900;font-size:12px;padding:8px 12px;border-radius:999px;background:var(--theme-btn-bg);color:var(--text);border:1px solid var(--stroke)}
-.toast{position:fixed;left:50%;bottom:calc(18px + var(--safe-bottom));transform:translateX(-50%) translateY(24px);background:linear-gradient(135deg,var(--accent-3),var(--accent-2));color:white;padding:12px 16px;border-radius:999px;font-weight:900;font-size:13px;box-shadow:0 14px 28px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:.22s ease;z-index:40}
-.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-.overlay{position:fixed;inset:0;background:rgba(8,12,24,.74);display:grid;place-items:center;opacity:0;pointer-events:none;transition:.25s ease;z-index:50;padding:20px}
-.overlay.show{opacity:1;pointer-events:auto}
-.modal-card{width:min(92vw,380px);padding:24px;border-radius:28px;background:var(--card-bg);border:1px solid var(--stroke);backdrop-filter:blur(16px);text-align:center;box-shadow:var(--shadow)}
-.modal-emoji{font-size:56px;margin-bottom:8px;animation:bounce 1.2s ease-in-out infinite}
-.modal-title{font-size:28px;font-weight:950;letter-spacing:-.05em}.modal-sub{margin-top:8px;color:var(--muted);font-weight:700;line-height:1.4}
-.levelup-btn{margin-top:16px;background:linear-gradient(135deg,var(--accent),var(--gold));color:#092117;width:100%}
-.install-banner{display:none}
-.install-banner.show{display:block}
-.onboarding-steps{display:grid;gap:12px;text-align:left;margin-top:14px}
-.step{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start;padding:12px;border-radius:18px;background:var(--theme-btn-bg);border:1px solid var(--stroke)}
-.step-num{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,var(--accent),var(--gold));color:#082218;font-weight:950}
-.confetti{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:45}
-.piece{position:absolute;width:10px;height:14px;border-radius:4px;opacity:0;animation:fall 1000ms ease-out forwards}
-@keyframes shimmer{100%{transform:translateX(100%)}}
-@keyframes floaty{50%{transform:rotate(8deg) translateY(-6px)}}
-@keyframes bounce{50%{transform:translateY(-8px) scale(1.08)}}
-@keyframes fall{0%{opacity:1;transform:translate(0,0) rotate(0)}100%{opacity:0;transform:translate(var(--x), var(--y)) rotate(320deg)}}
-.overlay.show .modal-card{animation:modal-pop-in .4s cubic-bezier(.175,.885,.32,1.275) forwards}
-@keyframes modal-pop-in{from{opacity:0;transform:scale(.8) rotate(-3deg)}to{opacity:1;transform:scale(1) rotate(0deg)}}
-.levelup-modal-card{
-  background:
-    radial-gradient(circle at 50% 0%, rgba(255,213,74,.4), transparent 70%),
-    linear-gradient(135deg, rgba(124,255,107,.22), rgba(122,124,255,.22));
-  box-shadow:0 0 40px rgba(255,213,74,.3), 0 0 80px rgba(124,255,107,.2);
-  border-color:rgba(255,213,74,.5)
-}
-.pill.level-up-flash{animation:level-up-pulse .8s ease-out}
-@keyframes level-up-pulse{
-  0%{transform:scale(1);box-shadow:0 0 0 0 rgba(255,213,74,0)}
-  50%{transform:scale(1.2);box-shadow:0 0 20px 10px rgba(255,213,74,0);color:#082218;background:var(--gold)}
-  100%{transform:scale(1);box-shadow:0 0 0 0 rgba(255,213,74,0)}
-}
-.welcome-card{width:min(96vw,480px);padding:28px;border-radius:28px;background:linear-gradient(165deg,var(--bg-2),var(--bg-1));border:1px solid var(--stroke);text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.35);animation:welcome-fade-in .5s ease forwards}
-@keyframes welcome-fade-in{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
-.welcome-emoji{font-size:56px;margin-bottom:12px;animation:bounce 1.4s ease-in-out infinite}
-.welcome-title{font-size:32px;font-weight:950;letter-spacing:-.05em;line-height:1.1;background:linear-gradient(135deg,var(--accent),var(--gold));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;margin:0}
-.welcome-sub{margin:12px auto 0;color:var(--muted);font-weight:700;line-height:1.5;max-width:45ch}
-.features-grid{display:grid;gap:12px;text-align:left;margin:24px 0}
-.feature{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center;padding:14px;border-radius:18px;background:var(--theme-btn-bg);border:1px solid var(--stroke)}
-.feature-icon{width:40px;height:40px;border-radius:14px;display:grid;place-items:center;font-size:18px;background:var(--icon-nested-bg)}
-.feature-text{display:grid}
-.feature-text strong{font-weight:900;font-size:14px}
-.feature-text span{font-size:13px;color:var(--muted)}
-.welcome-card .levelup-btn{width:100%;margin-top:12px}
-.share-card{padding:0;background:var(--bg-2);border-color:var(--accent-2);overflow:hidden}
-.share-content{padding:30px 20px;text-align:center}
-.share-title{font-size:32px;font-weight:950;letter-spacing:-.05em;background:linear-gradient(135deg,var(--accent),var(--gold));background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.share-app-name{margin-top:4px;font-weight:800;color:var(--muted)}
-@media (max-width:520px){
-#statsModal .stats-modal-grid{grid-template-columns:1fr}
-  .app{padding:calc(10px + var(--safe-top)) 10px calc(24px + var(--safe-bottom))}
-  .hero h1{font-size:30px}
-  .calendar{grid-template-columns:repeat(5,1fr)}
-  .button-row,.stats-grid{grid-template-columns:1fr}
-  .welcome-title{font-size:28px}
-}
-.stats-task-item{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;background:var(--theme-btn-bg);padding:10px;border-radius:14px;border:1px solid var(--stroke)}
-.stats-task-item .task-icon{font-size:16px;width:32px;height:32px;border-radius:10px}
-.stats-task-name{font-weight:800;font-size:13px}
-.stats-task-rate{font-size:12px;color:var(--muted);font-weight:700}
-.stats-modal-grid{grid-template-columns:1fr 1fr 1fr}
-.theme-btn{flex:1;background:var(--theme-btn-bg);border:1px solid var(--stroke);color:var(--muted)}
-.theme-btn.active{background:var(--accent-3);color:white;border-color:transparent}
-#splashScreen{position:fixed;inset:0;background:var(--bg-1);z-index:100;display:grid;place-items:center;transition:opacity .5s ease-out,visibility .5s ease-out .1s;visibility:visible;opacity:1}
-#splashScreen.hidden{opacity:0;visibility:hidden}
-.splash-content{text-align:center;animation:splash-fade-in .8s ease-out}
-@keyframes splash-fade-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-.splash-icon{font-size:80px;animation:bounce 1.5s ease-in-out infinite}
-.splash-content h1{font-size:24px;font-weight:950;letter-spacing:-.04em;color:var(--text);margin:12px 0 0}
-.xp-gain-toast{position:fixed;z-index:100;padding:6px 12px;background:var(--gold);color:#082218;font-weight:900;font-size:14px;border-radius:99px;opacity:0;pointer-events:none;transform:translateY(0);box-shadow:0 10px 20px rgba(0,0,0,.2)}
-.xp-gain-toast.show{animation:float-up 1.5s ease-out forwards}
-@keyframes float-up{
-  0%{opacity:1;transform:translateY(0) scale(.8)}
-  20%{transform:translateY(-20px) scale(1)}
-  100%{opacity:0;transform:translateY(-100px) scale(1)}
-}
+.drag-handle{color:var(--text-3);cursor:grab;font-size:15px;flex-shrink:0}
+.goal-input{flex:1;background:none;color:var(--text);font-size:13px;font-weight:600}
+.goal-input:focus{outline:none}
+.rm-goal{width:22px;height:22px;border-radius:6px;background:rgba(255,79,109,.1);color:var(--c-red);font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .2s}
+.rm-goal:hover{background:rgba(255,79,109,.25)}
+.btn-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ghost-btn{padding:12px;border-radius:11px;font-size:13px;font-weight:700;background:var(--surface-2);border:1px solid var(--border);color:var(--text-2);transition:background .2s,color .2s}
+.ghost-btn:hover{background:var(--surface);color:var(--text)}
+.ghost-btn.full{grid-column:1/-1}
+.ghost-btn.active{border-color:var(--c-cyan);color:var(--c-cyan)}
+.ghost-btn.danger{border-color:rgba(255,79,109,.25);color:var(--c-red)}
+
+/* REMINDER */
+.reminder-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.reminder-info{flex:1}
+.reminder-info .r-title{font-size:13px;font-weight:700;color:var(--text)}
+.reminder-info .r-sub{font-size:11px;color:var(--text-3);margin-top:2px}
+.reminder-controls{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.time-input{padding:7px 10px;border-radius:9px;font-size:13px;font-weight:700;font-family:'Space Mono',monospace;background:var(--surface-2);border:1px solid var(--border);color:var(--text);width:90px;text-align:center}
+.time-input:focus{outline:none;border-color:var(--c-cyan)}
+.r-toggle{width:44px;height:24px;border-radius:99px;background:var(--surface-2);border:1px solid var(--border);position:relative;cursor:pointer;transition:background .25s,border-color .25s;flex-shrink:0}
+.r-toggle.on{background:var(--c-neon);border-color:var(--c-neon)}
+.r-toggle::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .25s cubic-bezier(.34,1.56,.64,1);box-shadow:0 1px 4px rgba(0,0,0,.3)}
+.r-toggle.on::after{transform:translateX(20px)}
+.r-status{font-size:11px;color:var(--text-3);margin-top:6px}
+
+/* INSTALL BANNER */
+.install-banner{display:none;align-items:center;gap:12px;padding:14px 16px;background:linear-gradient(135deg,rgba(155,109,255,.12),rgba(0,229,200,.08));border:1px solid rgba(155,109,255,.25);border-radius:18px}
+.install-banner.show{display:flex}
+.ib-text{flex:1;min-width:0}
+.ib-title{font-size:13px;font-weight:800;color:var(--text)}
+.ib-sub{font-size:11px;color:var(--text-2);margin-top:2px}
+.ib-install{padding:8px 14px;border-radius:9px;font-size:12px;font-weight:800;background:var(--c-purple);color:#fff;flex-shrink:0}
+.ib-dismiss{color:var(--text-3);font-size:18px;flex-shrink:0}
+
+/* TOAST */
+.toast{position:fixed;bottom:0;left:50%;transform:translateX(-50%) translateY(80px);background:var(--text);color:var(--bg);padding:11px 18px;border-radius:12px;font-size:13px;font-weight:700;white-space:nowrap;z-index:9000;transition:transform .3s cubic-bezier(.34,1.56,.64,1),opacity .3s;opacity:0;margin-bottom:calc(20px + var(--safe-bottom))}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+.xp-toast{position:fixed;pointer-events:none;z-index:8999;font-size:16px;font-weight:900;font-family:'Space Mono',monospace;color:var(--c-neon);text-shadow:0 0 12px rgba(184,255,101,.6);opacity:0;transition:opacity .3s}
+.xp-toast.show{animation:xp-float .9s ease forwards}
+@keyframes xp-float{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-52px)}}
+
+/* CONFETTI */
+#confetti{position:fixed;inset:0;pointer-events:none;z-index:9500;overflow:hidden}
+.piece{position:absolute;width:9px;height:9px;border-radius:2px;animation:c-fall linear forwards}
+@keyframes c-fall{0%{transform:translateY(-20px) rotate(0deg);opacity:1}100%{transform:translateY(110vh) rotate(720deg);opacity:0}}
+
+/* OVERLAY + MODAL */
+.overlay{position:fixed;inset:0;z-index:8000;background:var(--overlay);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;padding:20px}
+.overlay.show{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border-hi);border-radius:26px;padding:32px 26px;text-align:center;max-width:400px;width:100%;animation:modal-in .35s cubic-bezier(.34,1.56,.64,1)}
+@keyframes modal-in{from{transform:scale(.88) translateY(22px);opacity:0}}
+.modal-emoji{font-size:50px;margin-bottom:12px}
+.modal-title{font-size:22px;font-weight:800;letter-spacing:-.02em;margin-bottom:8px}
+.modal-sub{font-size:14px;color:var(--text-2);line-height:1.55;margin-bottom:22px}
+.modal-btn{width:100%;padding:16px;border-radius:14px;font-size:15px;font-weight:800;font-family:'Syne',sans-serif;background:linear-gradient(135deg,var(--c-neon),var(--c-cyan));color:#071a0f;transition:transform .15s,box-shadow .2s}
+.modal-btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(184,255,101,.3)}
+.modal-btn.danger{background:linear-gradient(135deg,var(--c-red),#ff8060);color:#fff}
+.modal-btn.ghost{background:var(--surface-2);color:var(--text-2);margin-top:9px}
+
+/* WELCOME */
+.welcome-card{background:var(--surface);border:1px solid var(--border-hi);border-radius:28px;padding:32px 24px;max-width:420px;width:100%;animation:modal-in .4s cubic-bezier(.34,1.56,.64,1);max-height:90vh;overflow-y:auto}
+.welcome-title{font-size:24px;font-weight:800;letter-spacing:-.03em;line-height:1.2;margin:10px 0 8px}
+.welcome-title .accent{color:var(--c-neon)}
+.welcome-sub{font-size:14px;color:var(--text-2);line-height:1.6;margin-bottom:22px}
+.features{display:grid;gap:10px;margin-bottom:26px}
+.feat{display:flex;gap:14px;align-items:flex-start;padding:13px;background:var(--surface-2);border-radius:13px;border:1px solid var(--border)}
+.feat-icon{font-size:22px;flex-shrink:0}
+.feat-title{font-size:13px;font-weight:800;margin-bottom:2px}
+.feat-sub{font-size:12px;color:var(--text-2);line-height:1.4}
+
+/* STATS MODAL */
+.stats-modal{background:var(--surface);border:1px solid var(--border-hi);border-radius:26px;padding:26px;max-width:480px;width:100%;max-height:90vh;overflow-y:auto;animation:modal-in .35s cubic-bezier(.34,1.56,.64,1);text-align:left}
+.stats-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:22px}
+.schip{background:var(--surface-2);border-radius:13px;padding:13px;text-align:center;border:1px solid var(--border)}
+.schip-val{font-size:20px;font-weight:800;font-family:'Space Mono',monospace}
+.schip-label{font-size:9px;color:var(--text-3);text-transform:uppercase;letter-spacing:.08em;margin-top:3px;font-weight:700}
+.stask-row{display:flex;align-items:center;gap:10px;padding:11px;background:var(--surface-2);border-radius:11px}
+.stask-info{flex:1;min-width:0}
+.stask-name{font-size:13px;font-weight:700}
+.stask-rate{font-size:11px;color:var(--text-3);font-family:'Space Mono',monospace}
+.mini-bar{height:4px;border-radius:99px;background:var(--surface);overflow:hidden;margin-top:5px}
+.mini-fill{height:100%;background:linear-gradient(90deg,var(--c-neon),var(--c-cyan));border-radius:99px}
+
+/* SHARE */
+.share-modal{background:var(--surface);border:1px solid var(--border-hi);border-radius:26px;overflow:hidden;max-width:360px;width:100%;animation:modal-in .35s cubic-bezier(.34,1.56,.64,1);text-align:center}
+.share-top{padding:28px 22px 18px}
+.share-streak{font-size:42px;font-weight:800;font-family:'Space Mono',monospace;color:var(--c-neon);margin:6px 0 4px}
+.share-label{font-size:13px;color:var(--text-2)}
+.share-actions{padding:0 18px 18px;display:grid;gap:8px}
+
+/* ANIMS */
+@keyframes pulse-scale{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+@keyframes slide-up{from{transform:translateY(18px);opacity:0}to{transform:translateY(0);opacity:1}}
+.app>*{animation:slide-up .4s ease both}
+.app>*:nth-child(1){animation-delay:.05s}.app>*:nth-child(2){animation-delay:.1s}
+.app>*:nth-child(3){animation-delay:.15s}.app>*:nth-child(4){animation-delay:.2s}
+.app>*:nth-child(5){animation-delay:.25s}.app>*:nth-child(6){animation-delay:.3s}
+.app>*:nth-child(7){animation-delay:.35s}.app>*:nth-child(8){animation-delay:.4s}
+@keyframes level-flash{0%{transform:scale(1)}40%{transform:scale(1.45)}70%{transform:scale(.95)}100%{transform:scale(1)}}
+
+@media(max-width:360px){.hero-title{font-size:20px}.hstat-val{font-size:17px}.calendar{gap:4px}}
 </style>
 </head>
 <body class="theme-dark">
+<div class="glow-1"></div>
+<div class="glow-2"></div>
+
 <div id="splashScreen">
-  <div class="splash-content">
-    <div class="splash-icon">🚀</div>
-    <h1>Disciplina PRO</h1>
-  </div>
+  <div class="splash-logo">🔥</div>
+  <div class="splash-name">DISCIPLINA PRO</div>
+  <div class="splash-bar"><div class="splash-fill"></div></div>
 </div>
-<div id="xpGainToast" class="xp-gain-toast"></div>
-<div class="confetti" id="confetti"></div>
+
+<div id="confetti"></div>
+<div class="xp-toast" id="xpGainToast">+20 XP</div>
+
+<div class="install-banner" id="installBanner">
+  <div class="ib-text">
+    <div class="ib-title" data-i18n="install_banner_title">📲 Instale como app</div>
+    <div class="ib-sub" data-i18n="install_banner_sub">Sem Play Store. Funciona offline.</div>
+  </div>
+  <button class="ib-install" id="bannerInstallBtn" data-i18n="install_now">Instalar</button>
+  <button class="ib-dismiss" id="dismissInstallBannerBtn" data-i18n="not_now">×</button>
+</div>
+
 <div class="app">
+
+  <!-- HERO -->
   <div class="hero">
-    <h1 id="heroTitle">🔥 Disciplina PRO</h1>
-    <div class="hero-footer">
-      <div class="hero-footer-left">
-        <div id="level" class="pill">Lv 1</div>
-        <button class="install-btn" id="installBtn" type="button" hidden data-i18n="install_app">Instalar app</button>
+    <div class="hero-inner">
+      <div class="hero-top">
+        <div>
+          <div class="hero-name" id="heroName">Disciplina PRO</div>
+          <div class="hero-title"><span class="accent" id="heroTitle">30 Dias</span></div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
+          <div class="hero-badge">
+            <span class="lv-text" id="level">LV 1</span>
+            <div class="hearts" id="hearts">❤️❤️❤️</div>
+          </div>
+          <button id="installBtn" hidden style="padding:6px 12px;border-radius:9px;font-size:11px;font-weight:800;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:#fff">📲 Instalar</button>
+        </div>
       </div>
-      <div class="hero-footer-right">
-        <span id="xp">0 XP</span>
-        <span class="hearts" id="hearts">❤️❤️❤️</span>
+      <div class="hero-stats">
+        <div class="hstat"><div class="hstat-label" data-i18n="xp_total">XP Total</div><div class="hstat-val neon" id="xp">0</div></div>
+        <div class="hstat"><div class="hstat-label" data-i18n="days">Dias</div><div class="hstat-val cyan" id="daysCount">0</div></div>
+        <div class="hstat"><div class="hstat-label" data-i18n="streak">🔥 Streak</div><div class="hstat-val amber" id="streakCount">0</div></div>
       </div>
-    </div>
-    <div class="tasks-wrap-title" style="margin:16px 0 4px; color: #08131b; opacity: .7;"><span data-i18n="xp_level">XP do Nível</span><span class="progress-badge" id="xpBadge" style="background:rgba(0,0,0,.2); color: #f0f8ff; border-color: rgba(0,0,0,.1);">0/50</span></div>
-    <div class="xpbar"><div class="xpfill" id="xpFill"></div></div>
-  </div>
-
-  <div class="card install-banner" id="installBanner">
-    <div class="tasks-wrap-title"><span data-i18n="app_mode">Modo App</span><span class="progress-badge">PWA</span></div>
-    <div class="helper" style="margin-top:0;text-align:left" data-i18n="install_banner_helper">Instale na tela inicial para usar como app, sem Play Store nem App Store.</div>
-    <div style="margin-top:12px" class="button-row">
-      <button class="secondary-btn" id="bannerInstallBtn" type="button" data-i18n="install_now">Instalar agora</button>
-      <button class="ghost-btn" id="dismissInstallBannerBtn" type="button" data-i18n="not_now">Agora não</button>
-    </div>
-  </div>
-
-  <button type="button" class="card mascot-card">
-    <div class="mascot-wrap">
-      <div class="mascot-face" id="mascotFace">😐</div>
-      <div class="mascot-text">
-        <div class="mascot-title" data-i18n="mascot_title">Sparky, sua coach</div>
-        <div class="mascot-message" id="mascotMessage">Vamos fechar esse dia.</div>
+      <div class="hero-xp">
+        <div class="hero-xp-top"><span data-i18n="xp_level">XP do nível</span><span id="xpBadge">0/50</span></div>
+        <div class="xpbar"><div class="xpfill" id="xpFill" style="width:0%"></div></div>
       </div>
     </div>
-  </button>
-
-  <div class="card mission"><strong data-i18n="mission_of_the_day">Missão do dia</strong><div id="mission"></div></div>
-
-  <div class="stats-grid">
-    <div class="card stat-card"><div class="stat-label" data-i18n="days_completed">Dias completos</div><div class="stat-value" id="daysCount">0</div></div>
-    <div class="card stat-card"><div class="stat-label" data-i18n="current_streak">Streak atual</div><div class="stat-value" id="streakCount">0</div></div>
   </div>
 
-  <div class="card calendar-wrap">
-    <div class="calendar-head">
-      <div class="calendar-title" data-i18n="progress_map">Mapa de progresso</div>
-      <div class="calendar-sub" id="calendarSub">30 dias</div>
+  <!-- MASCOT -->
+  <div class="card mascot-wrap" id="mascotCard">
+    <div class="mascot-avi" id="mascotFace">😐</div>
+    <div class="mascot-info">
+      <div class="mascot-name" data-i18n="mascot_title">Sparky, sua coach</div>
+      <div class="mascot-msg" id="mascotMessage">Vamos fechar esse dia.</div>
+      <div class="mascot-hint" data-i18n="mascot_hint">Toque para novo conselho</div>
+    </div>
+  </div>
+
+  <!-- MISSION -->
+  <div class="card mission-wrap">
+    <div class="mission-tag" data-i18n="mission_of_the_day">Missão do dia</div>
+    <div class="mission-body" id="mission"></div>
+  </div>
+
+  <!-- MAP -->
+  <div class="card map-wrap">
+    <div class="map-head">
+      <div class="map-title" data-i18n="progress_map">Mapa de Progresso</div>
+      <div class="map-sub" id="calendarSub">0/30</div>
     </div>
     <div class="calendar" id="calendar"></div>
+    <div class="map-legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--c-neon)"></div><span data-i18n="legend_complete">Completo</span></div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--c-partial)"></div><span data-i18n="legend_partial">Parcial</span></div>
+      <div class="legend-item"><div class="legend-dot" style="background:rgba(255,79,109,.4)"></div><span data-i18n="legend_missed">Perdido</span></div>
+      <div class="legend-item"><div class="legend-dot" style="background:rgba(0,229,200,.4);border:1px solid var(--c-cyan)"></div><span data-i18n="legend_today">Hoje</span></div>
+    </div>
   </div>
 
-  <div class="card">
-    <div class="tasks-wrap-title"><span data-i18n="todays_checklist">Checklist de hoje</span><span class="progress-badge" id="progressBadge">0/6</span></div>
-    <div id="tasks"></div>
-    <div class="helper" id="helperText">Marque os itens para liberar o botão.</div>
-    <div class="helper"><button class="progress-badge" id="unlockTodayBtn" type="button" data-i18n="unlock_today">Destravar Hoje</button></div>
+  <!-- CHECKLIST -->
+  <div class="card checklist-wrap">
+    <div class="sec-head">
+      <div class="sec-title" data-i18n="todays_checklist">Checklist de Hoje</div>
+      <div class="prog-pill" id="progressBadge">0/0</div>
+    </div>
+    <div class="tasks-list" id="tasks"></div>
+    <div class="helper-msg" id="helperText"></div>
   </div>
 
-  <div class="card">
-    <div class="tasks-wrap-title"><span data-i18n="settings_title">Configurações e Opções</span><button id="toggleSettingsBtn" class="toggle-btn" type="button" data-i18n="edit">Editar</button></div>
-    <div id="settingsContent">
-      <div class="helper" style="margin-top:0;text-align:left" data-i18n="settings_sub">Ajuste o app do seu jeito.</div>
-      <div class="custom-grid" style="margin-top:12px">
-        <div class="tasks-wrap-title" style="margin-bottom:4px"><span data-i18n="customization">Personalização</span></div>
-        <input id="challengeNameInput" class="custom-input" type="text" placeholder="Nome do desafio" data-i18n-placeholder="challenge_name_placeholder" />
-        <div id="goalsContainer" class="custom-goals-container"></div>
-        <button id="addGoalBtn" class="ghost-btn" type="button" data-i18n="add_goal">+ Adicionar meta</button>
-        <div class="button-row">
-          <button class="secondary-btn" id="saveCustomizationBtn" type="button" data-i18n="save_customization">Salvar personalização</button>
+  <!-- CLOSE DAY -->
+  <div class="card close-wrap">
+    <div class="day-summary" id="closeDaySummary"></div>
+    <button class="btn" id="btn" type="button">Fechar dia</button>
+    <button class="unlock-btn" id="unlockTodayBtn" type="button" data-i18n="unlock_today">🔓 Destravar hoje</button>
+  </div>
+
+  <!-- STATS MINI -->
+  <div class="stats-row">
+    <div class="card scard"><div class="scard-label" data-i18n="days_completed">Dias Completos</div><div class="scard-val" id="daysCount2">0</div></div>
+    <div class="card scard"><div class="scard-label" data-i18n="current_streak">Streak Atual</div><div class="scard-val" id="streakCount2">0</div></div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div class="card settings-wrap">
+    <div class="settings-head">
+      <div class="sec-title" data-i18n="settings_title">Configurações</div>
+      <button class="toggle-btn" id="toggleSettingsBtn" type="button" data-i18n="edit">Editar</button>
+    </div>
+    <div class="settings-body" id="settingsBody">
+
+      <div>
+        <div class="s-section-label" data-i18n="customization">Personalização</div>
+        <input id="challengeNameInput" class="custom-input" type="text" placeholder="Nome do desafio" data-i18n="challenge_name_placeholder" data-i18n-target="placeholder">
+        <div id="goalsContainer" class="goals-list" style="margin-top:8px"></div>
+        <button id="addGoalBtn" class="ghost-btn full" type="button" style="margin-top:8px" data-i18n="add_goal">+ Adicionar meta</button>
+        <div class="btn-row" style="margin-top:8px">
+          <button class="ghost-btn" id="saveCustomizationBtn" type="button" data-i18n="save">Salvar</button>
           <button class="ghost-btn" id="resetCustomizationBtn" type="button" data-i18n="restore_default">Restaurar padrão</button>
         </div>
+      </div>
 
-        <div class="tasks-wrap-title" style="margin:16px 0 4px"><span data-i18n="theme_card_title">Tema</span></div>
-        <div class="button-row">
-          <button class="ghost-btn theme-btn" id="lightThemeBtn" type="button" data-i18n="theme_light">Claro</button>
-          <button class="ghost-btn theme-btn" id="darkThemeBtn" type="button" data-i18n="theme_dark">Escuro</button>
+      <div>
+        <div class="s-section-label" data-i18n="local_reminders">Lembretes locais</div>
+        <div class="reminder-row">
+          <div class="reminder-info">
+            <div class="r-title" data-i18n="daily_reminder">Lembrete diário</div>
+            <div class="r-sub" data-i18n="daily_reminder_sub">Notificação no horário definido</div>
+          </div>
+          <div class="reminder-controls">
+            <input type="time" id="reminderTimeInput" class="time-input" value="20:00">
+            <div class="r-toggle" id="reminderToggle"></div>
+          </div>
         </div>
+        <div class="r-status" id="reminderStatus" data-i18n="reminder_status_off">Lembretes desativados</div>
+      </div>
 
-        <div class="tasks-wrap-title" style="margin:16px 0 4px"><span data-i18n="app_management">Gerenciamento</span></div>
-        <div class="button-row">
-          <button class="ghost-btn" id="openStatsBtn" type="button" data-i18n="stats_card_btn">Ver Estatísticas</button>
-          <button class="ghost-btn" id="backupBtn" type="button" data-i18n="backup_btn">Fazer Backup</button>
-        </div>
-        <div class="button-row">
-          <button class="ghost-btn" id="restoreBtn" type="button" data-i18n="restore_btn">Restaurar Progresso</button>
-          <button class="ghost-btn" id="enableNotificationsBtn" type="button" data-i18n="enable_reminders">Ativar lembretes</button>
+      <div>
+        <div class="s-section-label" data-i18n="theme_card_title">Tema</div>
+        <div class="btn-row">
+          <button class="ghost-btn" id="lightThemeBtn" type="button" data-i18n="theme_light">☀️ Claro</button>
+          <button class="ghost-btn" id="darkThemeBtn" type="button" data-i18n="theme_dark">🌙 Escuro</button>
         </div>
       </div>
+
+      <div>
+        <div class="s-section-label" data-i18n="app_management">Gerenciamento</div>
+        <div class="btn-row">
+          <button class="ghost-btn" id="openStatsBtn" type="button" data-i18n="statistics">📊 Estatísticas</button>
+          <button class="ghost-btn" id="backupBtn" type="button" data-i18n="backup_btn">💾 Backup</button>
+        </div>
+        <div class="btn-row" style="margin-top:8px">
+          <button class="ghost-btn" id="restoreBtn" type="button" data-i18n="restore_btn">↩ Restaurar</button>
+          <button class="ghost-btn" id="shareAppBtn" type="button" data-i18n="share_app">🔗 Compartilhar</button>
+        </div>
+        <button class="ghost-btn full danger" id="hardResetBtn" style="margin-top:8px" type="button" data-i18n="hard_reset_btn">🗑 Limpar Dados</button>
+      </div>
+
     </div>
   </div>
 
-  <button class="btn" id="btn" type="button">Fechar dia</button>
 </div>
 
-<div class="toast" id="toast">Boa!</div>
+<div class="toast" id="toast"></div>
 
+<!-- LEVEL UP -->
 <div class="overlay" id="levelupModal">
-  <div class="modal-card levelup-modal-card">
-    <div class="modal-emoji">🔥</div>
-    <div class="modal-title" data-i18n="levelup_title">LEVEL UP</div>
+  <div class="modal">
+    <div class="modal-emoji">⚡</div>
+    <div class="modal-title" data-i18n="levelup_title">LEVEL UP!</div>
     <div class="modal-sub" id="levelupText">Você subiu de nível.</div>
-    <button class="levelup-btn" id="closeLevelupBtn" type="button" data-i18n="continue">Continuar</button>
+    <button class="modal-btn" id="closeLevelupBtn" type="button" data-i18n="continue">Continuar</button>
   </div>
 </div>
 
+<!-- WELCOME -->
 <div class="overlay" id="welcomeScreen">
   <div class="welcome-card">
-    <div class="modal-emoji">🚀</div>
-    <h1 class="welcome-title" data-i18n="welcome_title">Construa a disciplina, um dia de cada vez.</h1>
-    <p class="welcome-sub" data-i18n="welcome_sub">Disciplina PRO é um desafio de 30 dias para criar hábitos com gamificação. Sem desculpas, só consistência.</p>
-    <div class="features-grid">
-      <div class="feature">
-        <div class="feature-icon">🏆</div>
-        <div class="feature-text">
-          <strong data-i18n="feature1_title">Gamificado</strong>
-          <span data-i18n="feature1_sub">Ganhe XP, suba de nível e mantenha sua streak.</span>
-        </div>
-      </div>
-      <div class="feature">
-        <div class="feature-icon">🔒</div>
-        <div class="feature-text">
-          <strong data-i18n="feature2_title">100% Seu</strong>
-          <span data-i18n="feature2_sub">Personalize metas e salve tudo no seu aparelho.</span>
-        </div>
-      </div>
-      <div class="feature">
-        <div class="feature-icon">📲</div>
-        <div class="feature-text">
-          <strong data-i18n="feature3_title">Instalável (PWA)</strong>
-          <span data-i18n="feature3_sub">Use como um app nativo, sem precisar de loja.</span>
-        </div>
-      </div>
+    <div style="text-align:center;font-size:46px">🔥</div>
+    <h1 class="welcome-title" data-i18n="welcome_title">Construa a <span class="accent">disciplina</span>, um dia de cada vez.</h1>
+    <p class="welcome-sub" data-i18n="welcome_sub">Desafio gamificado de 30 dias com metas personalizadas. Métricas reais. Sem desculpas.</p>
+    <div class="features">
+      <div class="feat"><div class="feat-icon">🏆</div><div><div class="feat-title" data-i18n="feature1_title">Gamificado</div><div class="feat-sub" data-i18n="feature1_sub">XP, níveis e streak para manter o ritmo.</div></div></div>
+      <div class="feat"><div class="feat-icon">📊</div><div><div class="feat-title" data-i18n="feature2_title">Métricas reais</div><div class="feat-sub" data-i18n="feature2_sub">Feche o dia mesmo sem 100% — o histórico é honesto.</div></div></div>
+      <div class="feat"><div class="feat-icon">📲</div><div><div class="feat-title" data-i18n="feature3_title">Instalável (PWA)</div><div class="feat-sub" data-i18n="feature3_sub">App nativo, funciona offline.</div></div></div>
     </div>
-    <button class="levelup-btn" id="startChallengeBtn" data-i18n="start_challenge">Começar meu desafio</button>
+    <button class="modal-btn" id="startChallengeBtn" data-i18n="start_challenge">Começar meu desafio 🚀</button>
   </div>
 </div>
 
+<!-- UNLOCK CONFIRM -->
 <div class="overlay" id="unlockConfirmModal">
-  <div class="modal-card">
-    <div class="modal-emoji">🤔</div>
+  <div class="modal">
+    <div class="modal-emoji">🔓</div>
     <div class="modal-title" data-i18n="unlock_confirm_title">Destravar o dia?</div>
-    <div class="modal-sub" data-i18n="unlock_confirm_sub">Isso irá reverter os +20 XP e o dia de streak que você ganhou. Assim você pode fazer correções antes de fechar o dia novamente.</div>
-    <button class="levelup-btn" id="confirmUnlockBtn" type="button" data-i18n="unlock_confirm_btn" style="background: var(--danger); color: white;">Sim, destravar</button>
-    <button class="ghost-btn" id="cancelUnlockBtn" type="button" data-i18n="close" style="margin-top: 10px; width: 100%;">Fechar</button>
+    <div class="modal-sub" data-i18n="unlock_confirm_sub">Isso irá reverter os +20 XP e o dia de streak. Você poderá corrigir e fechar novamente.</div>
+    <button class="modal-btn danger" id="confirmUnlockBtn" type="button" data-i18n="unlock_confirm_btn">Sim, destravar</button>
+    <button class="modal-btn ghost" id="cancelUnlockBtn" type="button" data-i18n="cancel">Cancelar</button>
   </div>
 </div>
 
+<!-- WIN -->
 <div class="overlay" id="winModal">
-  <div class="modal-card">
+  <div class="modal">
     <div class="modal-emoji">🏆</div>
-    <div class="modal-title" data-i18n="win_title">30 dias completos</div>
-    <div class="modal-sub" data-i18n="win_sub">Você concluiu o ciclo inteiro. Isso não foi sorte. Foi constância.</div>
-    <button class="levelup-btn" id="closeWinBtn" type="button" data-i18n="win_btn">Continuar vendo</button>
+    <div class="modal-title" data-i18n="win_title">30 dias! Incrível!</div>
+    <div class="modal-sub" data-i18n="win_sub">Você completou o ciclo inteiro. Isso não foi sorte. Foi constância.</div>
+    <button class="modal-btn" id="restartChallengeBtn" data-i18n="restart_challenge_btn">Começar Novo Desafio</button>
+    <button class="modal-btn ghost" id="closeWinBtn" type="button" data-i18n="win_btn_continue">Continuar vendo</button>
   </div>
 </div>
 
+<!-- SHARE -->
 <div class="overlay" id="shareModal">
-  <div class="modal-card share-card">
-    <div class="share-content">
-      <div class="modal-emoji">🎉</div>
-      <div class="share-title" id="shareTitleText">🔥 3 dias de Streak!</div>
-      <div class="share-app-name" data-i18n="share_sub">Compartilhe sua conquista</div>
+  <div class="share-modal">
+    <div class="share-top">
+      <div style="font-size:34px">🔥</div>
+      <div class="share-streak" id="shareStreakText">3</div>
+      <div class="share-label" id="shareSubText" data-i18n="share_streak_subtext">dias de streak no Disciplina PRO!</div>
     </div>
-    <button class="levelup-btn" id="shareBtn" data-i18n="share_btn" style="border-radius: 0;">Compartilhar</button>
-    <button class="ghost-btn" id="closeShareBtn" data-i18n="close" style="margin: 10px 24px 14px; width: calc(100% - 48px);">Fechar</button>
+    <div class="share-actions">
+      <button class="modal-btn" id="shareBtn" data-i18n="share_btn">Compartilhar conquista</button>
+      <button class="modal-btn ghost" id="closeShareBtn" data-i18n="close">Fechar</button>
+    </div>
   </div>
 </div>
 
+<!-- STATS -->
 <div class="overlay" id="statsModal">
-  <div class="modal-card" style="width:min(95vw,520px);text-align:left">
-    <div class="modal-emoji" style="text-align:center">📊</div>
-    <div class="modal-title" style="text-align:center" data-i18n="stats_modal_title">Estatísticas Detalhadas</div>
-    <div class="stats-grid stats-modal-grid" style="margin-top:20px">
-      <div class="stat-card"><div class="stat-label" data-i18n="days_completed">Dias completos</div><div class="stat-value" id="statsDaysCount">0</div></div>
-      <div class="stat-card"><div class="stat-label" data-i18n="best_streak">Melhor Streak</div><div class="stat-value" id="statsBestStreak">0</div></div>
-      <div class="stat-card"><div class="stat-label" data-i18n="completion_rate">Taxa de Conclusão</div><div class="stat-value" id="statsCompletionRate">0%</div></div>
+  <div class="stats-modal">
+    <div style="font-size:34px;text-align:center;margin-bottom:10px">📊</div>
+    <div class="modal-title" style="text-align:center;margin-bottom:18px" data-i18n="stats_modal_title">Estatísticas Detalhadas</div>
+    <div class="stats-3">
+      <div class="schip"><div class="schip-val" id="statsDaysCount">0</div><div class="schip-label" data-i18n="days">Dias</div></div>
+      <div class="schip"><div class="schip-val" id="statsBestStreak">0</div><div class="schip-label" data-i18n="best_streak">Melhor Streak</div></div>
+      <div class="schip"><div class="schip-val" id="statsCompletionRate">0%</div><div class="schip-label" data-i18n="completion_rate">Conclusão</div></div>
     </div>
-    <div class="tasks-wrap-title" style="margin-top:24px;margin-bottom:8px"><span data-i18n="task_performance">Desempenho por Meta</span></div>
-    <div id="statsTaskList" style="display:grid;gap:8px;max-height:25vh;overflow-y:auto;padding-right:8px">
-    </div>
-    <button class="ghost-btn" id="closeStatsBtn" type="button" data-i18n="close" style="margin-top:20px;width:100%">Fechar</button>
+    <div class="sec-title" style="margin-bottom:10px" data-i18n="task_performance">Desempenho por Meta</div>
+    <div id="statsTaskList" style="display:grid;gap:8px;max-height:30vh;overflow-y:auto"></div>
+    <button class="modal-btn ghost" id="closeStatsBtn" type="button" style="margin-top:18px;width:100%" data-i18n="close">Fechar</button>
   </div>
 </div>
 

@@ -22,5 +22,21 @@
       "type": "image/png",
       "purpose": "any maskable"
     }
+  ],
+  "shortcuts": [
+    {
+      "name": "Ver Estatísticas",
+      "short_name": "Estatísticas",
+      "description": "Acessar seu desempenho detalhado",
+      "url": "./index.html?action=stats",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Editar Metas",
+      "short_name": "Metas",
+      "description": "Personalizar suas metas diárias",
+      "url": "./index.html?action=settings",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    }
   ]
 }

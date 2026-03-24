@@ -1,62 +1,78 @@
+/* ─────────────────────────────────────────────────────────
+   Disciplina PRO — app.js (reescrito)
+   Melhorias:
+   - Fechar dia mesmo sem 100% (parcial vs completo)
+   - Botão "pular meta" por tarefa (mantém histórico honesto)
+   - Calendário com 3 estados: done / partial / miss
+   - Notificações locais via Notification API + scheduling local
+   - Visual + micro-interactions melhoradas
+   ───────────────────────────────────────────────────────── */
+
 const ICON_POOL = ["🎯","✨","📚","💻","🏃","🚴","🧠","🙏","📿","💪","🍫","💧","🌙","💼","📝","🎨","📖","🧘","🏆","🔥"];
-const VAPID_PUBLIC_KEY = "BDS_T-d3nLp2GImA-o_pWCoI-yq8u2zYFqgJzY_jJ6M";
-const STORAGE_KEY = "disciplina-pro-v3";
+const STORAGE_KEY = "disciplina-pro-v4";
 let deferredInstallPrompt = null;
+const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 let draggedItem = null;
 
+const GAMIFICATION_CONSTANTS = {
+  XP_PER_DAY: 20,
+  XP_PER_LEVEL: 50,
+  XP_FAIL_MULTIPLIER: 0.25,
+  MISSION_BONUS_ALL_CHECKS: 10,
+  MISSION_BONUS_CLEAN_DAY: 15,
+};
+
+// ── STATE ──────────────────────────────────────────────────
 let state = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
   day: 0,
   xp: 0,
   level: 1,
-  hearts: 3,
-  tasks: {},
+  schemaVersion: 5,
+  tasks: {},       // { index: true|false|'skip'|'fail' }
   lastDate: null,
-  history: [],
+  history: [],     // 'done'|'partial'|'miss'
   mission: null,
   streak: 0,
   onboardingSeen: false,
   installBannerDismissed: false,
   winShown: false,
   challengeName: i18n.challengeNameDefault,
-  customTasks: null,
-  fullHistory: [],
-  theme: 'dark'
+  customTasks: null, // [{name, icon, desc}]
+  fullHistory: [],  // [{date, completedTasks, skippedTasks, failedTasks, total}]
+  theme: 'dark',
+  reminderEnabled: false,
+  reminderTime: '20:00',
 };
 
-// Sanitize state on load and persist the fix. This is crucial for recovering from corrupted data.
-let stateWasSanitized = false;
-if (state.day < 0) { state.day = 0; stateWasSanitized = true; }
-if (state.streak < 0) { state.streak = 0; stateWasSanitized = true; }
-if (state.xp < 0) { state.xp = 0; stateWasSanitized = true; }
-if (state.level < 1) { state.level = 1; stateWasSanitized = true; }
-if (typeof state.hearts !== 'number' || state.hearts < 0 || state.hearts > 3) { state.hearts = 3; stateWasSanitized = true; }
-
-if (stateWasSanitized) {
-  console.log("Corrupted state detected and sanitized.");
-  save();
-}
-
+// Sanitize
+if (state.day < 0) state.day = 0;
+if (state.streak < 0) state.streak = 0;
+if (state.xp < 0) state.xp = 0;
+if (state.level < 1) state.level = 1;
 if (!state.tasks) state.tasks = {};
+if (typeof state.schemaVersion !== 'number') state.schemaVersion = 5;
 if (!state.history) state.history = [];
 if (!state.mission) state.mission = get_MISSIONS()[0];
-if (typeof state.streak !== "number") state.streak = state.day || 0;
-if (typeof state.onboardingSeen !== "boolean") state.onboardingSeen = false;
-if (typeof state.installBannerDismissed !== "boolean") state.installBannerDismissed = false;
-if (typeof state.winShown !== "boolean") state.winShown = false;
+if (typeof state.streak !== 'number') state.streak = 0;
 if (!state.challengeName) state.challengeName = i18n.challengeNameDefault;
 if (!Array.isArray(state.customTasks) || state.customTasks.length === 0) state.customTasks = get_DEFAULT_TASKS().slice();
 if (!state.fullHistory) state.fullHistory = [];
 if (!state.theme) state.theme = 'dark';
+if (typeof state.reminderEnabled !== 'boolean') state.reminderEnabled = false;
+if (!state.reminderTime) state.reminderTime = '20:00';
 
 function today() {
   const now = new Date();
-  const offset = now.getTimezoneOffset();
-  const local = new Date(now.getTime() - offset * 60000);
-  return local.toISOString().slice(0, 10);
+  return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 }
 
 function save() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch (e) {
+    console.error("Failed to save state:", e);
+    showToast(i18n.toast_save_failed);
+  }
 }
 
 function randomItem(list) {
@@ -64,935 +80,1074 @@ function randomItem(list) {
 }
 
 function getTasks() {
-  return Array.isArray(state.customTasks) && state.customTasks.length ? state.customTasks : get_DEFAULT_TASKS();
+  return Array.isArray(state.customTasks) && state.customTasks.length
+    ? state.customTasks : get_DEFAULT_TASKS();
 }
 
 function taskIconFor(name, index) {
   const ICON_MAP = [
-    [["bike"], "🚴"],
-    [["python", "estudar", "curso"], "🐍"],
-    [["oração", "rezar"], "🙏"],
-    [["terço", "salmo"], "📿"],
-    [["doce", "chocolate"], "🍫"],
-    [["água"], "💧"],
-    [["trabalho"], "💼"],
-    [["ler", "livro"], "📖"],
-    [["treino", "agach"], "💪"],
+    [["bike"], "🚴"], [["python", "estudar", "curso"], "🐍"],
+    [["oração", "rezar", "prayer"], "🙏"], [["terço", "salmo", "rosary"], "📿"],
+    [["doce", "chocolate", "sweet"], "🍫"], [["água", "water"], "💧"],
+    [["trabalho", "work"], "💼"], [["ler", "livro", "read", "book"], "📖"],
+    [["treino", "agach", "squat", "gym"], "💪"],
   ];
   const lower = name.toLowerCase();
-  const found = ICON_MAP.find(([keywords]) => keywords.some(kw => lower.includes(kw)));
-  if (found) return found[1];
-  return ICON_POOL[index % ICON_POOL.length];
+  const found = ICON_MAP.find(([kws]) => kws.some(kw => lower.includes(kw)));
+  return found ? found[1] : ICON_POOL[index % ICON_POOL.length];
 }
 
 function normalizeTasks(list) {
-  return list.map((name, index) => ({
-    name,
-    icon: taskIconFor(name, index),
-    desc: i18n.customTaskDesc
+  return list.map((name, i) => ({
+    name, icon: taskIconFor(name, i), desc: i18n.customTaskDesc
   }));
 }
 
-function createGoalItem(name) {
-  const item = document.createElement('div');
-  item.className = 'goal-item';
-  item.draggable = true;
-  item.innerHTML = `
-    <span class="drag-handle">⠿</span>
-    <input type="text" class="goal-input" placeholder="Nova meta">
-    <button type="button" class="remove-goal-btn">×</button>
-  `;
-  const input = item.querySelector('.goal-input');
-  input.value = name;
-  item.querySelector('.remove-goal-btn').onclick = () => item.remove();
-  return item;
-}
-
-function getDragAfterElement(container, y) {
-  const draggableElements = [...container.querySelectorAll('.goal-item:not(.dragging)')];
-  return draggableElements.reduce((closest, child) => {
-    const box = child.getBoundingClientRect();
-    const offset = y - box.top - box.height / 2;
-    if (offset < 0 && offset > closest.offset) {
-      return { offset: offset, element: child };
-    } else {
-      return closest;
-    }
-  }, { offset: Number.NEGATIVE_INFINITY }).element;
-}
-
-function setupGoalsEditor() {
-  const container = document.getElementById('goalsContainer');
-  container.addEventListener('dragstart', e => {
-    if (e.target.classList.contains('goal-item')) {
-      draggedItem = e.target;
-      setTimeout(() => e.target.classList.add('dragging'), 0);
-      vibrate(20);
+function applyI18n() {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.dataset.i18n;
+    const translation = i18n[key];
+    if (translation) {
+      const target = el.dataset.i18nTarget;
+      if (target === 'placeholder') el.placeholder = translation;
+      else el.innerHTML = translation;
     }
   });
-  container.addEventListener('dragend', e => {
-    if (draggedItem) {
-      draggedItem.classList.remove('dragging');
-      draggedItem = null;
-    }
-  });
-  container.addEventListener('dragover', e => {
-    e.preventDefault();
-    const afterElement = getDragAfterElement(container, e.clientY);
-    if (draggedItem) {
-      if (afterElement == null) {
-        container.appendChild(draggedItem);
-      } else {
-        container.insertBefore(draggedItem, afterElement);
-      }
-    }
-  });
-  document.getElementById('addGoalBtn').onclick = () => {
-    const newItem = createGoalItem('');
-    container.appendChild(newItem);
-    newItem.querySelector('input').focus();
-  };
+  document.title = i18n.app_name;
 }
 
-function renderGoalsEditor() {
-  const container = document.getElementById('goalsContainer');
-  container.innerHTML = '';
-  const tasks = getTasks();
-  if (tasks.length > 0) {
-    tasks.forEach(task => {
-      container.appendChild(createGoalItem(task.name));
-    });
-  }
+// ── TASK STATUS HELPERS ────────────────────────────────────
+// state.tasks[i] can be: true (done), 'skip' (skipped), 'fail' (failed), undefined/false (pending)
+function isTaskDone(i)   { return state.tasks[i] === true; }
+function isTaskSkipped(i){ return state.tasks[i] === 'skip'; }
+function isTaskFailed(i) { return state.tasks[i] === 'fail'; }
+function isTaskDecided(i){ return isTaskDone(i) || isTaskSkipped(i) || isTaskFailed(i); }
+
+function countDone()    { return getTasks().filter((_, i) => isTaskDone(i)).length; }
+function countSkipped() { return getTasks().filter((_, i) => isTaskSkipped(i)).length; }
+function countFailed()  { return getTasks().filter((_, i) => isTaskFailed(i)).length; }
+function countDecided() { return getTasks().filter((_, i) => isTaskDecided(i)).length; }
+
+function allDecided() {
+  return getTasks().every((_, i) => isTaskDecided(i));
 }
 
+// ── CALENDAR ───────────────────────────────────────────────
 function setupCalendar() {
-  const calendar = document.getElementById("calendar");
-  calendar.innerHTML = "";
+  const cal = document.getElementById('calendar');
+  cal.innerHTML = '';
   for (let i = 0; i < 30; i++) {
-    const d = document.createElement("div");
-    d.className = "day";
-    calendar.appendChild(d);
+    const d = document.createElement('div');
+    d.className = 'cal-day';
+    d.textContent = i + 1;
+    cal.appendChild(d);
   }
 }
 
 function renderCalendar() {
-  const calendar = document.getElementById("calendar");
-  const days = calendar.children;
-  const isTodayLocked = state.lastDate === today();
+  const cal = document.getElementById('calendar');
+  const days = cal.children;
+  const locked = state.lastDate === today();
   for (let i = 0; i < 30; i++) {
-    const dayElement = days[i];
-    if (!dayElement) continue;
-    dayElement.classList.toggle("done", state.history[i] === "done");
-    dayElement.classList.toggle("miss", state.history[i] === "miss");
-    dayElement.classList.toggle("today", i === state.day && !isTodayLocked);
+    const el = days[i];
+    if (!el) continue;
+    el.className = 'cal-day';
+    if (state.history[i] === 'done')    el.classList.add('done');
+    else if (state.history[i] === 'partial') el.classList.add('partial');
+    else if (state.history[i] === 'miss')    el.classList.add('miss');
+    if (i === state.day && !locked)     el.classList.add('today');
   }
 }
 
+// ── STATS ──────────────────────────────────────────────────
 function calculateStats() {
-    const history = state.history;
-    const fullHistory = state.fullHistory || [];
-    const tasks = getTasks();
+  const history = state.history;
+  const fullHistory = state.fullHistory || [];
+  const tasks = getTasks();
 
-    // Best Streak
-    let bestStreak = 0;
-    let currentStreak = 0;
-    for (const entry of history) {
-        if (entry === 'done') {
-            currentStreak++;
-        } else {
-            bestStreak = Math.max(bestStreak, currentStreak);
-            currentStreak = 0;
-        }
-    }
-    bestStreak = Math.max(bestStreak, currentStreak);
+  let bestStreak = 0, cur = 0;
+  for (const e of history) {
+    if (e === 'done' || e === 'partial') cur++;
+    else { bestStreak = Math.max(bestStreak, cur); cur = 0; }
+  }
+  bestStreak = Math.max(bestStreak, cur);
 
-    // Completion Rate
-    const daysPassed = history.filter(d => d === 'done' || d === 'miss').length;
-    const daysDone = history.filter(d => d === 'done').length;
-    const completionRate = daysPassed > 0 ? Math.round((daysDone / daysPassed) * 100) : 0;
+  const daysPassed = history.filter(d => d === 'done' || d === 'partial' || d === 'miss').length;
+  const daysCompleted = history.filter(d => d === 'done' || d === 'partial').length;
+  const completionRate = daysPassed > 0 ? Math.round((daysCompleted / daysPassed) * 100) : 0;
 
-    // Task Performance
-    const taskPerformance = {};
-    tasks.forEach(task => {
-        taskPerformance[task.name] = {
-            name: task.name,
-            icon: task.icon,
-            completions: 0,
-        };
+  const taskPerf = {};
+  tasks.forEach(t => { taskPerf[t.name] = { name: t.name, icon: t.icon, completions: 0, failures: 0 }; });
+  fullHistory.forEach(dayEntry => {
+    (dayEntry.completedTasks || []).forEach(n => {
+      if (taskPerf[n]) taskPerf[n].completions++;
     });
-
-    fullHistory.forEach(dayEntry => {
-        dayEntry.completedTasks.forEach(taskName => {
-            if (taskPerformance[taskName]) {
-                taskPerformance[taskName].completions++;
-            }
-        });
+    (dayEntry.failedTasks || []).forEach(n => {
+      if (taskPerf[n]) taskPerf[n].failures++;
     });
+  });
 
-    return {
-        totalCompleted: daysDone,
-        bestStreak,
-        completionRate,
-        taskPerformance: Object.values(taskPerformance),
-        totalDaysWithHistory: fullHistory.length
-    };
+  return {
+    totalCompleted: daysCompleted,
+    bestStreak,
+    completionRate,
+    taskPerformance: Object.values(taskPerf),
+    totalDaysWithHistory: fullHistory.length,
+  };
 }
 
 function renderStatsModal() {
-    const stats = calculateStats();
+  const stats = calculateStats();
+  document.getElementById('statsDaysCount').textContent = stats.totalCompleted;
+  document.getElementById('statsBestStreak').textContent = stats.bestStreak;
+  document.getElementById('statsCompletionRate').textContent = `${stats.completionRate}%`;
+  const list = document.getElementById('statsTaskList');
+  list.innerHTML = '';
+  if (stats.taskPerformance.length === 0 || stats.totalDaysWithHistory === 0) {
+    list.innerHTML = `<div style="font-size:13px;color:var(--text-3)">${i18n.stats_no_data_yet}</div>`;
+    return;
+  }
+  stats.taskPerformance.sort((a, b) => b.completions - a.completions).forEach(task => {
+    const totalAttempts = task.completions + task.failures;
+    const successRate = totalAttempts > 0 ? Math.round((task.completions / totalAttempts) * 100) : 0;
+    const participation = stats.totalDaysWithHistory > 0 ? Math.round((totalAttempts / stats.totalDaysWithHistory) * 100) : 0;
 
-    document.getElementById('statsDaysCount').textContent = stats.totalCompleted;
-    document.getElementById('statsBestStreak').textContent = stats.bestStreak;
-    document.getElementById('statsCompletionRate').textContent = `${stats.completionRate}%`;
-
-    const taskList = document.getElementById('statsTaskList');
-    taskList.innerHTML = '';
-
-    if (stats.taskPerformance.length === 0 || stats.totalDaysWithHistory === 0) {
-        taskList.innerHTML = `<div class="helper">${i18n.helper_text_all_done}</div>`; // Reusing a translation
-        return;
-    }
-
-    stats.taskPerformance.sort((a, b) => b.completions - a.completions).forEach(task => {
-        const item = document.createElement('div');
-        item.className = 'stats-task-item';
-        const completionPercentage = stats.totalDaysWithHistory > 0 ? Math.round((task.completions / stats.totalDaysWithHistory) * 100) : 0;
-        item.innerHTML = `
-            <div class="task-icon">${task.icon}</div>
-            <div class="task-text"><div class="stats-task-name">${task.name}</div><div class="stats-task-rate">${completionPercentage}% (${task.completions}/${stats.totalDaysWithHistory})</div></div>
-            <div class="xpbar" style="width:60px;height:8px"><div class="xpfill" style="width:${completionPercentage}%"></div></div>`;
-        taskList.appendChild(item);
-    });
+    const el = document.createElement('div');
+    el.className = 'stask-row';
+    el.innerHTML = `
+      <div style="font-size:20px;flex-shrink:0">${task.icon}</div>
+      <div class="stask-info">
+        <div class="stask-name">${task.name}</div>
+        <div class="stask-rate">${i18n.success_rate}: ${successRate}% (${task.completions}/${totalAttempts})</div>
+        <div class="mini-bar"><div class="mini-fill" style="width:${successRate}%"></div></div>
+      </div>`;
+    list.appendChild(el);
+  });
 }
 
+// ── UPDATE PROGRESS UI ─────────────────────────────────────
 function updateProgressUI() {
   const TASKS = getTasks();
-  const done = Object.values(state.tasks).filter(Boolean).length;
-  const allDone = done === TASKS.length;
+  const done = countDone();
+  const skipped = countSkipped();
+  const failed = countFailed();
+  const decided = countDecided();
+  const total = TASKS.length;
   const locked = state.lastDate === today();
+  const allD = allDecided();
 
-  document.getElementById("unlockTodayBtn").style.display = locked ? 'inline-block' : 'none';
+  // Progress pill
+  const pill = document.getElementById('progressBadge');
+  pill.textContent = `${done}/${total}`;
+  pill.className = 'prog-pill' + (done === total ? ' all-done' : done > 0 ? ' partial-done' : '');
 
-  document.getElementById("progressBadge").textContent = `${done}/${TASKS.length}`;
-  document.getElementById("btn").disabled = !allDone || locked;
-  document.getElementById("btn").textContent = locked ? i18n.btn_day_closed : allDone ? i18n.btn_close_day_done : i18n.btn_close_day;
-  document.getElementById("helperText").textContent = locked
-    ? i18n.helper_text_locked
-    : allDone
-      ? i18n.helper_text_all_done
-      : `${TASKS.length - done} ${i18n.helper_text_remaining}`;
-
-  updateMascot(allDone, locked);
-}
-
-function handleTaskClick(event) {
-  if (state.lastDate === today()) return;
-
-  const taskElement = event.currentTarget;
-  const index = parseInt(taskElement.dataset.taskIndex, 10);
-  const task = getTasks()[index];
-
-  // 1. Update state
-  state.tasks[index] = !state.tasks[index];
-  save();
-
-  // 2. Give feedback
-  const TASKS = getTasks();
-  const doneCount = Object.values(state.tasks).filter(Boolean).length;
-  const allDone = doneCount === TASKS.length;
-
-  if (state.tasks[index] && allDone) {
-    playAllDone();
-    showToast(i18n.toast_all_tasks_completed);
-  } else {
-    playTick();
-    showToast(`${task.name} ${state.tasks[index] ? i18n.toast_task_completed : i18n.toast_task_unchecked}`);
+  // Summary chips
+  const summary = document.getElementById('closeDaySummary');
+  summary.innerHTML = '';
+  const pluralDone = done > 1 ? 's' : '';
+  const pluralSkipped = skipped > 1 ? 's' : '';
+  const pluralFailed = failed > 1 ? 's' : '';
+  if (decided > 0) {
+    if (done > 0) {
+      const c = document.createElement('div');
+      c.className = 'sum-chip c-done';
+      c.textContent = `✓ ${done} ${i18n.summary_completed}${pluralDone}`;
+      summary.appendChild(c);
+    }
+    if (skipped > 0) {
+      const c = document.createElement('div');
+      c.className = 'sum-chip c-skip';
+      c.textContent = `✗ ${skipped} ${i18n.summary_skipped}${pluralSkipped}`;
+      summary.appendChild(c);
+    }
+    if (failed > 0) {
+      const c = document.createElement('div');
+      c.className = 'sum-chip c-fail';
+      c.textContent = `! ${failed} ${i18n.summary_failed}${pluralFailed}`;
+      summary.appendChild(c);
+    }
   }
 
-  // 3. Efficiently update the DOM
-  taskElement.classList.toggle("done", state.tasks[index]);
+  // Button
+  const btn = document.getElementById('btn');
+  const unlockBtn = document.getElementById('unlockTodayBtn');
+  unlockBtn.style.display = locked ? 'block' : 'none';
+
+  if (locked) {
+    btn.textContent = i18n.btn_day_closed;
+    btn.disabled = true;
+    btn.className = 'btn b-locked';
+  } else if (!allD) {
+    const remaining = total - decided;
+    const plural = remaining > 1 ? 's' : '';
+    btn.textContent = i18n.btn_close_day.replace('{count}', remaining).replace('{plural}', plural);
+    btn.disabled = true;
+    btn.className = 'btn';
+  } else if (done === total) {
+    btn.textContent = i18n.btn_close_day_done;
+    btn.disabled = false;
+    btn.className = 'btn';
+  } else {
+    btn.textContent = i18n.btn_close_day_partial.replace('{done}', done).replace('{total}', total);
+    btn.disabled = false;
+    btn.className = 'btn b-partial';
+  }
+
+  // Helper text
+  const helper = document.getElementById('helperText');
+  const remaining = total - decided;
+  const plural = remaining > 1 ? 's' : '';
+  if (locked) {
+    helper.innerHTML = i18n.helper_text_locked;
+  } else if (!allD) {
+    helper.innerHTML = i18n.helper_text_pending_tasks.replace('{count}', remaining).replace('{plural}', plural);
+  } else if (done === total) {
+    helper.innerHTML = i18n.helper_text_all_done;
+  } else {
+    helper.innerHTML = i18n.helper_text_partial_done.replace('{done}', done).replace('{total}', total);
+  }
+
+  updateMascot(done, total, locked);
+}
+
+// ── RENDER TASKS ───────────────────────────────────────────
+function renderTasks() {
+  const wrap = document.getElementById('tasks');
+  wrap.innerHTML = '';
+  const TASKS = getTasks();
+  const locked = state.lastDate === today();
+
+  TASKS.forEach((task, i) => {
+    const done = isTaskDone(i);
+    const skipped = isTaskSkipped(i);
+    const failed = isTaskFailed(i);
+    const statusText = done ? i18n.task_status_completed : skipped ? i18n.task_status_skipped : failed ? i18n.task_status_failed : i18n.task_status_pending;
+
+    const el = document.createElement('button');
+    el.type = 'button';
+    el.className = `task-item${done ? ' t-done' : ''}${skipped ? ' t-skip' : ''}${failed ? ' t-fail' : ''}`;
+    el.dataset.taskIndex = i;
+    el.setAttribute('aria-label', `${task.name}, ${statusText}`);
+    el.innerHTML = `
+      <div class="t-icon">${task.icon}</div>
+      <div class="t-body">
+        <div class="t-name">${task.name}</div>
+        <div class="t-desc">${task.desc}</div>
+      </div>
+      <div class="t-actions">
+        <div class="t-check">✓</div>
+        ${!locked ? `<div class="t-fail-btn" data-fail="${i}" title="${i18n.fail_task_tooltip}">!</div>
+                     <div class="t-skip-btn" data-skip="${i}" title="${i18n.skip_task_tooltip}">✗</div>` : ''}
+      </div>`;
+
+    // Check click (toggle done)
+    el.addEventListener('click', (e) => {
+      if (locked) return;
+      if (e.target.closest('.t-skip-btn') || e.target.closest('.t-fail-btn')) return;
+      handleTaskCheck(i);
+    });
+
+    // Skip click
+    const skipBtn = el.querySelector('.t-skip-btn');
+    if (skipBtn) {
+      skipBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (locked) return;
+        handleTaskSkip(i);
+      });
+    }
+
+    // Fail click
+    const failBtn = el.querySelector('.t-fail-btn');
+    if (failBtn) {
+      failBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (locked) return;
+        handleTaskSkip(i, true); // Using skip handler with a flag
+      });
+    }
+
+    wrap.appendChild(el);
+  });
+}
+
+function handleTaskCheck(i) {
+  const wasDone = isTaskDone(i);
+  state.tasks[i] = wasDone ? false : true;
+  save();
+
+  const el = document.querySelector(`[data-task-index="${i}"]`);
+  if (el) {
+    el.classList.toggle('t-done', isTaskDone(i));
+    el.classList.remove('t-skip');
+    el.classList.remove('t-fail');
+  }
+
+  if (!wasDone && isTaskDone(i)) {
+    playTick(); vibrate(10);
+    if (countDone() === getTasks().length) {
+      playAllDone();
+      showToast(i18n.toast_all_tasks_completed);
+    } else {
+      showToast(`${getTasks()[i].name} ${i18n.toast_task_completed}`);
+    }
+  } else {
+    showToast(`${getTasks()[i].name} ${i18n.toast_task_unchecked}`);
+  }
   updateProgressUI();
 }
 
-function renderTasks() {
-  const tasksWrap = document.getElementById("tasks");
-  tasksWrap.innerHTML = "";
+function handleTaskSkip(i, isFail = false) {
+  const targetState = isFail ? 'fail' : 'skip';
+  const wasInThisState = state.tasks[i] === targetState;
+  state.tasks[i] = wasInThisState ? false : targetState;
+  save();
+
+  const el = document.querySelector(`[data-task-index="${i}"]`);
+  if (el) {
+    el.classList.remove('t-done');
+    el.classList.toggle('t-skip', state.tasks[i] === 'skip');
+    el.classList.toggle('t-fail', state.tasks[i] === 'fail');
+  }
+
+  vibrate(5);
+  const taskName = getTasks()[i].name;
+  let message;
+  if (wasInThisState) {
+    message = i18n.toast_task_reactivated;
+  } else {
+    message = isFail ? i18n.toast_task_failed : i18n.toast_task_skipped;
+  }
+  showToast(message.replace('{taskName}', taskName));
+  updateProgressUI();
+}
+
+// ── CLOSE DAY ──────────────────────────────────────────────
+document.getElementById('btn').onclick = () => {
+  if (state.lastDate === today()) return;
+  if (!allDecided()) return;
+
   const TASKS = getTasks();
+  const done = countDone();
+  const failed = countFailed();
+  const total = TASKS.length;
+  const isFullDone = done === total;
+  const isPartial = done > 0 && done < total;
+  const isMiss = done === 0;
 
-  TASKS.forEach((task, i) => {
-    const checked = !!state.tasks[i];
-    const el = document.createElement("button");
-    el.type = "button";
-    el.className = `task${checked ? " done" : ""}`;
-    el.dataset.taskIndex = i;
-    el.innerHTML = `
-      <div class="task-icon">${task.icon}</div>
-      <div class="task-text">
-        <div class="task-name">${task.name}</div>
-        <div class="task-desc">${task.desc}</div>
-      </div>
-      <div class="task-check">✓</div>
-    `;
-    el.onclick = handleTaskClick;
-    tasksWrap.appendChild(el);
-  });
-}
+  const oldXp = state.xp;
+  state.day += 1;
+  state.lastDate = today();
 
-function applyTheme(theme) {
-  document.body.className = `theme-${theme}`;
-  document.querySelector('meta[name="theme-color"]').setAttribute("content", theme === 'dark' ? '#44e0b2' : '#ffffff');
-  document.getElementById('lightThemeBtn').classList.toggle('active', theme === 'light');
-  document.getElementById('darkThemeBtn').classList.toggle('active', theme === 'dark');
-}
-
-function setTheme(newTheme) {
-  if (state.theme === newTheme) return;
-  state.theme = newTheme;
-  save();
-  applyTheme(newTheme);
-}
-
-function updateMascot(done, locked) {
-  const face = document.getElementById("mascotFace");
-  const msg = document.getElementById("mascotMessage");
-  face.className = "mascot-face";
-  let mood = 'neutral'; // Default mood
-
-  if (locked) {
-    face.textContent = "😴";
-    msg.textContent = randomItem(get_MASCOT_MESSAGES().locked);
-    mood = 'locked';
-  } else if (done) {
-    face.textContent = "😄";
-    face.classList.add("happy");
-    msg.textContent = randomItem(get_MASCOT_MESSAGES().done);
-    mood = 'done';
+  if (isMiss) {
+    // Zero metas: dia perdido, sem XP, streak quebra
+    state.history[state.day - 1] = 'miss';
+    state.streak = 0;
+    showToast(i18n.toast_day_closed_miss);
   } else {
-    const completed = Object.values(state.tasks).filter(Boolean).length;
-    const totalTasks = getTasks().length;
+    const effectiveDone = done + (failed * GAMIFICATION_CONSTANTS.XP_FAIL_MULTIPLIER);
+    let xpGain = isFullDone ? GAMIFICATION_CONSTANTS.XP_PER_DAY : Math.round(GAMIFICATION_CONSTANTS.XP_PER_DAY * (effectiveDone / total));
+    let bonusXp = 0;
+    let missionToast = '';
 
-    if (completed === 0) {
-      face.textContent = "😐";
-      msg.textContent = randomItem(get_MASCOT_MESSAGES().neutral);
-      mood = 'neutral';
-    } else if (completed === totalTasks - 1 && totalTasks > 1) {
-      face.textContent = "🤩";
-      face.classList.add("happy");
-      msg.textContent = randomItem(get_MASCOT_MESSAGES().almost);
-      mood = 'almost';
-    } else {
-      face.textContent = "🙂";
-      msg.textContent = randomItem(get_MASCOT_MESSAGES().partial);
-      mood = 'partial';
+    const missions = get_MISSIONS();
+    // Mission Bonus: "+10 XP if you close the day with all checks." (index 0)
+    if (isFullDone && state.mission === missions[0]) {
+      bonusXp = GAMIFICATION_CONSTANTS.MISSION_BONUS_ALL_CHECKS;
+      xpGain += bonusXp;
+      missionToast = i18n.toast_mission_complete.replace('{xp}', bonusXp);
     }
+    // Mission Bonus: "Clean mission: complete everything without skipping any item." (index 1)
+    else if (isFullDone && countSkipped() === 0 && countFailed() === 0 && state.mission === missions[1]) {
+      bonusXp = GAMIFICATION_CONSTANTS.MISSION_BONUS_CLEAN_DAY;
+      xpGain += bonusXp;
+      missionToast = i18n.toast_mission_clean_complete.replace('{xp}', bonusXp);
+    }
+
+    state.xp += xpGain;
+    // Streak does not break on 'fail', only on 'miss' or if day is skipped entirely.
+    // The logic for breaking streak on missed days is in updateMissedDay().
+    if (!isMiss) state.streak += 1;
+    state.history[state.day - 1] = isFullDone ? 'done' : 'partial';
+    showToast(i18n.toast_day_closed.replace('{xp}', xpGain) + missionToast);
+    showXpGainToast(xpGain);
   }
-  face.dataset.mood = mood; // Store the current mood
-}
 
-function showToast(message) {
-  const toast = document.getElementById("toast");
-  toast.textContent = message;
-  toast.classList.add("show");
-  clearTimeout(showToast._t);
-  showToast._t = setTimeout(() => toast.classList.remove("show"), 1400);
-}
-
-function playTone(freq, duration, type = "sine", volume = 0.03) {
-  try {
-    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-    if (!AudioCtx) return;
-    if (!window.__streakAudioCtx) window.__streakAudioCtx = new AudioCtx();
-    const ctx = window.__streakAudioCtx;
-    if (ctx.state === "suspended") ctx.resume();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = type;
-    osc.frequency.value = freq;
-    gain.gain.value = volume;
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start();
-    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration / 1000);
-    osc.stop(ctx.currentTime + duration / 1000);
-  } catch (e) {}
-}
-
-function vibrate(duration = 10) {
-  if ('vibrate' in navigator) {
-    try { navigator.vibrate(duration); } catch(e) {}
-  }
-}
-
-function playTick() {
-  playTone(680, 90, "triangle", 0.025);
-  vibrate(10);
-}
-
-function playAllDone() {
-  playTone(523, 80, "sine", 0.03);
-  setTimeout(() => playTone(659, 80, "sine", 0.03), 80);
-  setTimeout(() => playTone(783, 120, "sine", 0.03), 160);
-  vibrate(40);
-}
-
-function playLevelUp() {
-  playTone(520, 120, "triangle", 0.03);
-  setTimeout(() => playTone(780, 140, "triangle", 0.03), 90);
-  setTimeout(() => playTone(980, 180, "triangle", 0.03), 180);
-}
-
-function animateXpGain(from, to) {
-  const start = performance.now();
-  const duration = 700;
-  function step(now) {
-    const t = Math.min((now - start) / duration, 1);
-    const value = Math.round(from + (to - from) * (1 - Math.pow(1 - t, 3)));
-    document.getElementById("xp").textContent = `${value} XP`;
-    const visual = ((value % 50) / 50) * 100;
-    document.getElementById("xpBadge").textContent = `${value % 50}/50`;
-    document.getElementById("xpFill").style.width = `${visual}%`;
-    if (t < 1) requestAnimationFrame(step);
-  }
-  requestAnimationFrame(step);
-}
-
-function launchConfetti(amount = 26) {
-  const root = document.getElementById("confetti");
-  root.innerHTML = "";
-  const colors = ["#7cff6b", "#44e0b2", "#7a7cff", "#ffd54a", "#ff5f7a"];
-  for (let i = 0; i < amount; i++) {
-    const piece = document.createElement("span");
-    piece.className = "piece";
-    piece.style.left = `${20 + Math.random() * 60}%`;
-    piece.style.top = `${12 + Math.random() * 12}%`;
-    piece.style.background = colors[i % colors.length];
-    piece.style.setProperty("--x", `${-140 + Math.random() * 280}px`);
-    piece.style.setProperty("--y", `${220 + Math.random() * 160}px`);
-    piece.style.animationDelay = `${Math.random() * 120}ms`;
-    root.appendChild(piece);
-  }
-  setTimeout(() => { root.innerHTML = ""; }, 1200);
-}
-
-function urlBase64ToUint8Array(base64String) {
-  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
-  const rawData = window.atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-  for (let i = 0; i < rawData.length; ++i) {
-    outputArray[i] = rawData.charCodeAt(i);
-  }
-  return outputArray;
-}
-
-async function subscribeToNotifications() {
-  try {
-    const registration = await navigator.serviceWorker.ready;
-    const subscription = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
-    });
-    console.log("Push subscription:", JSON.stringify(subscription));
-    showToast(i18n.toast_reminders_on);
-    // Em um app real, você enviaria a 'subscription' para seu servidor aqui.
-  } catch (error) {
-    console.error("Falha ao se inscrever para notificações:", error);
-    showToast(i18n.toast_reminders_fail);
-  }
-  updateNotificationUI();
-}
-
-async function askNotificationPermission() {
-  const permission = await Notification.requestPermission();
-  if (permission === "granted") {
-    await subscribeToNotifications();
-  } else {
-    showToast(i18n.toast_permission_denied);
-  }
-  updateNotificationUI();
-}
-
-async function updateNotificationUI() {
-  const btn = document.getElementById("enableNotificationsBtn");
-
-  if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
-    if (btn) btn.style.display = 'none';
-    return;
-  }
-  if (btn) btn.style.display = 'block';
-
-  const permission = Notification.permission;
-  if (permission === "granted") {
-    btn.textContent = i18n.reminders_enabled;
-    btn.disabled = true;
-  } else if (permission === "denied") {
-    btn.textContent = i18n.reminders_blocked;
-    btn.disabled = true;
-  }
-}
-
-function applyTranslations() {
-  document.documentElement.lang = userLang.toUpperCase();
-  document.querySelectorAll('[data-i18n]').forEach(el => {
-    const key = el.dataset.i18n;
-    if (i18n[key]) el.textContent = i18n[key];
+  // Save full history entry
+  const completedTaskNames = TASKS.filter((_, i) => isTaskDone(i)).map(t => t.name);
+  const skippedTaskNames   = TASKS.filter((_, i) => isTaskSkipped(i)).map(t => t.name);
+  const failedTaskNames    = TASKS.filter((_, i) => isTaskFailed(i)).map(t => t.name);
+  state.fullHistory.push({
+    date: state.lastDate,
+    completedTasks: completedTaskNames,
+    skippedTasks: skippedTaskNames,
+    failedTasks: failedTaskNames,
+    total: TASKS.length,
   });
-  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
-    const key = el.dataset.i18nPlaceholder;
-    if (i18n[key]) el.placeholder = i18n[key];
-  });
-}
 
-function renderInstallUi() {
-  const installBtn = document.getElementById("installBtn");
-  const banner = document.getElementById("installBanner");
-  const inStandalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone;
-  const canPrompt = !!deferredInstallPrompt;
-  installBtn.hidden = !canPrompt || inStandalone;
-  banner.classList.toggle("show", canPrompt && !inStandalone && !state.installBannerDismissed);
-}
+  state.tasks = {};
+  state.mission = randomItem(get_MISSIONS());
 
-async function triggerInstall() {
-  if (!deferredInstallPrompt) return;
-  deferredInstallPrompt.prompt();
-  try { await deferredInstallPrompt.userChoice; } catch (e) {}
-  deferredInstallPrompt = null;
-  state.installBannerDismissed = true;
+  // Level up check
+  let leveledUp = false;
+  while (state.xp >= state.level * GAMIFICATION_CONSTANTS.XP_PER_LEVEL) {
+    state.level += 1;
+    leveledUp = true;
+  }
+
   save();
-  renderInstallUi();
+  render();
+  renderTasks();
+  if (!isMiss) {
+    animateXpGain(oldXp, state.xp);
+    playTick();
+    setTimeout(() => playTick(), 90);
+    launchConfetti(isFullDone ? 30 : 16);
+  }
+
+  // Streak milestone share
+  const streakMilestones = [3, 7, 15, 30];
+  if (!isMiss && streakMilestones.includes(state.streak)) {
+    document.getElementById('shareStreakText').textContent = state.streak;
+    document.getElementById('shareSubText').textContent = i18n.share_streak_subtext;
+    setTimeout(() => openModal('shareModal'), 900);
+  }
+
+  if (leveledUp) {
+    setTimeout(() => {
+      launchConfetti(60);
+      playLevelUp();
+      vibrate([80, 40, 80, 40, 80]);
+      const lb = document.getElementById('level');
+      lb.classList.remove('level-flash'); void lb.offsetWidth; lb.classList.add('level-flash');
+      document.getElementById('levelupText').textContent = `${i18n.levelup_text_prefix} ${state.level}.`;
+      openModal('levelupModal');
+    }, 500);
+  }
+
+  if (state.day >= 30 && !state.winShown) {
+    state.winShown = true; save();
+    setTimeout(() => {
+      openModal('winModal');
+      launchConfetti(40); playLevelUp();
+    }, 300);
+  }
+};
+
+// ── MASCOT ─────────────────────────────────────────────────
+function updateMascot(done, total, locked) {
+  const face = document.getElementById('mascotFace');
+  const msg  = document.getElementById('mascotMessage');
+  let mood = 'neutral';
+
+  if (state.day === 0 && !locked) {
+    face.textContent = '👋';
+    msg.textContent = i18n.mascot_welcome;
+    mood = 'welcome';
+  } else if (locked) {
+    face.textContent = '😴'; mood = 'locked';
+    msg.textContent = randomItem(get_MASCOT_MESSAGES().locked);
+  } else if (done === total && total > 0) {
+    face.textContent = '😄'; mood = 'done';
+    msg.textContent = randomItem(get_MASCOT_MESSAGES().done);
+  } else if (done === total - 1 && total > 1) {
+    face.textContent = '🤩'; mood = 'almost';
+    msg.textContent = randomItem(get_MASCOT_MESSAGES().almost);
+  } else if (done > 0) {
+    face.textContent = '🙂'; mood = 'partial';
+    msg.textContent = randomItem(get_MASCOT_MESSAGES().partial);
+  } else {
+    face.textContent = '😐'; mood = 'neutral';
+    msg.textContent = randomItem(get_MASCOT_MESSAGES().neutral);
+  }
+  face.dataset.mood = mood;
 }
 
+document.getElementById('mascotCard').onclick = () => {
+  const face = document.getElementById('mascotFace');
+  const msg  = document.getElementById('mascotMessage');
+  const pool = get_MASCOT_MESSAGES()[face.dataset.mood || 'neutral'];
+  if (!prefersReducedMotion) {
+    face.classList.remove('bounce'); void face.offsetWidth; face.classList.add('bounce');
+  }
+  vibrate(15);
+  msg.style.opacity = '0';
+  setTimeout(() => {
+    let next = randomItem(pool);
+    if (pool.length > 1) while (next === msg.textContent) next = randomItem(pool);
+    msg.textContent = next;
+    msg.style.opacity = '1';
+  }, 150);
+};
+
+// ── RENDER ──────────────────────────────────────────────────
+function render() {
+  document.getElementById('heroTitle').textContent = state.challengeName || i18n.challengeNameDefault;
+  document.getElementById('heroName').textContent = i18n.app_name;
+  document.getElementById('xp').textContent = state.xp;
+  document.getElementById('level').textContent = `LV ${state.level}`;
+  document.getElementById('mission').textContent = state.mission;
+  document.getElementById('daysCount').textContent = state.day;
+  document.getElementById('streakCount').textContent = state.streak;
+  document.getElementById('daysCount2').textContent = state.day;
+  document.getElementById('streakCount2').textContent = state.streak;
+  document.getElementById('calendarSub').textContent = `${state.day}/30`;
+  document.getElementById('challengeNameInput').value = state.challengeName;
+
+  const xpForLevel = state.xp % GAMIFICATION_CONSTANTS.XP_PER_LEVEL;
+  const xpPct = (xpForLevel / GAMIFICATION_CONSTANTS.XP_PER_LEVEL) * 100;
+  document.getElementById('xpBadge').textContent = `${xpForLevel}/${GAMIFICATION_CONSTANTS.XP_PER_LEVEL}`;
+  document.getElementById('xpFill').style.width = `${xpPct}%`;
+
+  updateProgressUI();
+  renderCalendar();
+  renderInstallUi();
+  updateReminderUI();
+}
+
+// ── MISSED DAY DETECTION ───────────────────────────────────
 function updateMissedDay() {
   if (!state.lastDate) return;
   const last = new Date(`${state.lastDate}T12:00:00`);
-  const now = new Date(`${today()}T12:00:00`);
+  const now  = new Date(`${today()}T12:00:00`);
   const diff = Math.round((now - last) / 86400000);
   if (diff > 1) {
-    const missedIndex = state.day;
-    if (missedIndex < 30 && state.history[missedIndex] !== "done") {
-      state.history[missedIndex] = "miss";
+    const missedDays = diff - 1;
+    // Mark missed days
+    for (let m = 0; m < missedDays; m++) {
+      const idx = state.day + m;
+      if (idx < 30 && state.history[idx] !== 'done' && state.history[idx] !== 'partial') {
+        state.history[idx] = 'miss';
+      }
     }
+    state.day += missedDays;
     state.streak = 0;
     save();
   }
 }
 
-function render() {
-  const TASKS = getTasks();
-  document.getElementById("heroTitle").textContent = `🔥 ${state.challengeName}`;
-  document.getElementById("xp").textContent = `${state.xp} XP`;
-  document.getElementById("level").textContent = `${i18n.level} ${state.level}`;
-  document.getElementById("hearts").textContent = "❤️".repeat(state.hearts);
-  document.getElementById("mission").textContent = state.mission;
-  document.getElementById("daysCount").textContent = state.day;
-  document.getElementById("streakCount").textContent = state.streak;
-  document.getElementById("calendarSub").textContent = `${state.day}/30 ${i18n.days_suffix}`;
-  document.getElementById("challengeNameInput").value = state.challengeName;
-  updateNotificationUI();
-
-  const xpProgress = ((state.xp % 50) / 50) * 100;
-  document.getElementById("xpBadge").textContent = `${state.xp % 50}/50`;
-  document.getElementById("xpFill").style.width = `${xpProgress}%`;
-
-  updateProgressUI();
-  renderCalendar();
-  renderInstallUi();
+// ── TOAST ──────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => t.classList.remove('show'), 1600);
 }
 
+// ── XP GAIN TOAST ─────────────────────────────────────────
 function showXpGainToast(amount) {
-  const toast = document.getElementById('xpGainToast');
-  if (!toast) return;
+  const t = document.getElementById('xpGainToast');
+  if (!t) return;
   const btn = document.getElementById('btn');
-  const rect = btn.getBoundingClientRect();
-  toast.textContent = `+${amount} XP`;
-  toast.style.left = `${rect.left + (rect.width / 2) - (toast.offsetWidth / 2)}px`;
-  toast.style.top = `${rect.top - 40}px`;
-  toast.classList.add('show');
-  setTimeout(() => {
-    toast.classList.remove('show');
-  }, 1400);
+  const r = btn.getBoundingClientRect();
+  t.textContent = `+${amount} XP`;
+  t.style.left = `${r.left + r.width / 2 - 30}px`;
+  t.style.top  = `${r.top - 40}px`;
+  t.classList.remove('show'); void t.offsetWidth;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1000);
 }
 
-document.getElementById('openStatsBtn').onclick = () => {
-    renderStatsModal();
-    document.getElementById('statsModal').classList.add('show');
-};
+// ── AUDIO ──────────────────────────────────────────────────
+function playTone(freq, dur, type = 'sine', vol = 0.025) {
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+    if (!window.__audioCtx) window.__audioCtx = new Ctx();
+    const ctx = window.__audioCtx;
+    if (ctx.state === 'suspended') ctx.resume();
+    const osc = ctx.createOscillator(); const gain = ctx.createGain();
+    osc.type = type; osc.frequency.value = freq; gain.gain.value = vol;
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.start();
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + dur / 1000);
+    osc.stop(ctx.currentTime + dur / 1000);
+  } catch (e) {}
+}
+function vibrate(d = 10) { if (prefersReducedMotion) return; try { navigator.vibrate?.(d); } catch(e) {} }
+function playTick()   { playTone(680, 90, 'triangle', 0.022); vibrate(10); }
+function playAllDone(){ playTone(523,80); setTimeout(()=>playTone(659,80),80); setTimeout(()=>playTone(783,120),160); vibrate(40); }
+function playLevelUp(){ playTone(520,120,'triangle'); setTimeout(()=>playTone(780,140,'triangle'),90); setTimeout(()=>playTone(980,180,'triangle'),180); }
 
-document.getElementById('closeStatsBtn').onclick = () => {
-    document.getElementById('statsModal').classList.remove('show');
-};
-
-document.getElementById("enableNotificationsBtn").onclick = () => {
-  askNotificationPermission();
-};
-
-document.getElementById('lightThemeBtn').onclick = () => {
-  setTheme('light');
-};
-
-document.getElementById('darkThemeBtn').onclick = () => {
-  setTheme('dark');
-};
-
-document.querySelector('.mascot-card').onclick = () => {
-  const face = document.getElementById("mascotFace");
-  const msg = document.getElementById("mascotMessage");
-  const currentMood = face.dataset.mood || 'neutral';
-  const messagePool = get_MASCOT_MESSAGES()[currentMood];
-
-  // Animate face with a "pop"
-  face.classList.remove('pop');
-  void face.offsetWidth; // Trigger reflow to restart animation
-  face.classList.add('pop');
-  vibrate(20);
-
-  // Animate message change with a fade
-  msg.style.opacity = 0;
-  setTimeout(() => {
-    // Find a new message that is different from the current one
-    let newMessage = randomItem(messagePool);
-    if (messagePool.length > 1) {
-      while (newMessage === msg.textContent) { newMessage = randomItem(messagePool); }
-    }
-    msg.textContent = newMessage;
-    msg.style.opacity = 1;
-  }, 150);
-};
-
-document.getElementById("toggleSettingsBtn").onclick = () => {
-  const content = document.getElementById("settingsContent");
-  const btn = document.getElementById("toggleSettingsBtn");
-  const isVisible = content.classList.contains("show");
-  if (!isVisible) {
-    renderGoalsEditor();
-  }
-  content.classList.toggle("show");
-  btn.textContent = isVisible ? i18n.edit : i18n.close;
-};
-
-document.getElementById("saveCustomizationBtn").onclick = () => {
-  const name = document.getElementById("challengeNameInput").value.trim() || "Disciplina PRO";
-  const goalsRaw = [...document.querySelectorAll('#goalsContainer .goal-input')]
-    .map(input => input.value.trim())
-    .filter(Boolean)
-    .slice(0, 12);
-
-  if (goalsRaw.length === 0) {
-    showToast(i18n.toast_at_least_one_goal);
+// ── XP ANIMATION ───────────────────────────────────────────
+function animateXpGain(from, to) {
+  if (prefersReducedMotion) {
+    document.getElementById('xp').textContent = to;
+    const xpForLevel = to % GAMIFICATION_CONSTANTS.XP_PER_LEVEL;
+    const xpBadge = document.getElementById('xpBadge');
+    if (xpBadge) xpBadge.textContent = `${xpForLevel}/${GAMIFICATION_CONSTANTS.XP_PER_LEVEL}`;
+    const xpFill = document.getElementById('xpFill');
+    if (xpFill) xpFill.style.width = `${(xpForLevel / GAMIFICATION_CONSTANTS.XP_PER_LEVEL) * 100}%`;
     return;
   }
+  const start = performance.now();
+  const dur = 700;
+  (function step(now) {
+    const t = Math.min((now - start) / dur, 1);
+    const v = Math.round(from + (to - from) * (1 - Math.pow(1 - t, 3)));
+    const xpForLevel = v % GAMIFICATION_CONSTANTS.XP_PER_LEVEL;
+    document.getElementById('xp').textContent = v;
+    document.getElementById('xpBadge').textContent = `${xpForLevel}/${GAMIFICATION_CONSTANTS.XP_PER_LEVEL}`;
+    document.getElementById('xpFill').style.width = `${(xpForLevel / GAMIFICATION_CONSTANTS.XP_PER_LEVEL) * 100}%`;
+    if (t < 1) requestAnimationFrame(step);
+  })(start);
+}
 
-  const previousTasks = getTasks();
-  const newTasks = normalizeTasks(goalsRaw);
-  const changed = newTasks.length !== previousTasks.length || newTasks.some((task, i) => !previousTasks[i] || previousTasks[i].name !== task.name);
+// ── CONFETTI ───────────────────────────────────────────────
+function launchConfetti(n = 26) {
+  if (prefersReducedMotion) return;
+  const root = document.getElementById('confetti');
+  root.innerHTML = '';
+  const colors = ['#b8ff65','#00e5c8','#9b6dff','#ffb830','#ff4f6d'];
+  for (let i = 0; i < n; i++) {
+    const p = document.createElement('div');
+    p.className = 'piece';
+    p.style.cssText = `
+      left:${Math.random()*100}%;
+      background:${colors[Math.floor(Math.random()*colors.length)]};
+      animation-duration:${0.8 + Math.random() * 1.4}s;
+      animation-delay:${Math.random() * .5}s;
+      width:${6 + Math.random()*8}px;
+      height:${6 + Math.random()*8}px;
+      border-radius:${Math.random() > 0.5 ? '50%' : '2px'}`;
+    root.appendChild(p);
+    setTimeout(() => p.remove(), 2500);
+  }
+}
 
-  state.challengeName = name;
-  state.customTasks = newTasks;
-  if (changed && state.lastDate !== today()) state.tasks = {};
-  save();
-  showToast(i18n.toast_customization_saved);
-  render();
-  renderTasks();
+// ── THEME ──────────────────────────────────────────────────
+function applyTheme(theme) {
+  document.body.className = `theme-${theme}`;
+  document.querySelector('meta[name="theme-color"]').content = theme === 'dark' ? '#0d0d14' : '#f2f2f8';
+  document.getElementById('lightThemeBtn').classList.toggle('active', theme === 'light');
+  document.getElementById('darkThemeBtn').classList.toggle('active', theme === 'dark');
+}
+function setTheme(t) { if (state.theme === t) return; state.theme = t; save(); applyTheme(t); }
+document.getElementById('lightThemeBtn').onclick = () => setTheme('light');
+document.getElementById('darkThemeBtn').onclick  = () => setTheme('dark');
+
+// ── SETTINGS TOGGLE ────────────────────────────────────────
+// O botão de configurações agora abre um modal.
+document.getElementById('toggleSettingsBtn').onclick = () => {
+  const body = document.getElementById('settingsBody');
+  const btn  = document.getElementById('toggleSettingsBtn');
+  const open = body.classList.toggle('show');
+  btn.textContent = open ? i18n.close : i18n.edit;
+  if (open) renderGoalsEditor();
 };
 
-document.getElementById("resetCustomizationBtn").onclick = () => {
+// ── GOALS EDITOR ───────────────────────────────────────────
+function createGoalItem(name) {
+  const el = document.createElement('div');
+  el.className = 'goal-item'; el.draggable = true;
+  el.innerHTML = `
+    <span class="drag-handle">⠿</span>
+    <input class="goal-input" type="text" placeholder="Nome da meta" value="${name.replace(/"/g,'&quot;')}">
+    <button type="button" class="rm-goal">×</button>`;
+  el.querySelector('.rm-goal').onclick = () => el.remove();
+  return el;
+}
+
+function setupGoalsEditor() {
+  const c = document.getElementById('goalsContainer');
+  c.addEventListener('dragstart', e => {
+    if (e.target.classList.contains('goal-item')) {
+      draggedItem = e.target;
+      setTimeout(() => e.target.classList.add('dragging'), 0);
+      vibrate(18);
+    }
+  });
+  c.addEventListener('dragend', () => {
+    if (draggedItem) { draggedItem.classList.remove('dragging'); draggedItem = null; }
+  });
+  c.addEventListener('dragover', e => {
+    e.preventDefault();
+    if (!draggedItem) return;
+    const after = [...c.querySelectorAll('.goal-item:not(.dragging)')].reduce((closest, child) => {
+      const box = child.getBoundingClientRect();
+      const off = e.clientY - box.top - box.height / 2;
+      return off < 0 && off > closest.offset ? { offset: off, element: child } : closest;
+    }, { offset: Number.NEGATIVE_INFINITY }).element;
+    after ? c.insertBefore(draggedItem, after) : c.appendChild(draggedItem);
+  });
+  document.getElementById('addGoalBtn').onclick = () => {
+    const item = createGoalItem('');
+    c.appendChild(item);
+    item.querySelector('input').focus();
+  };
+}
+
+function renderGoalsEditor() {
+  const c = document.getElementById('goalsContainer');
+  c.innerHTML = '';
+  getTasks().forEach(t => c.appendChild(createGoalItem(t.name)));
+}
+
+document.getElementById('saveCustomizationBtn').onclick = () => {
+  const name = document.getElementById('challengeNameInput').value.trim() || 'Disciplina PRO';
+  const raw = [...document.querySelectorAll('#goalsContainer .goal-input')]
+    .map(i => i.value.trim()).filter(Boolean).slice(0, 12);
+  if (!raw.length) { showToast('Adicione pelo menos uma meta.'); return; }
+  const prev = getTasks();
+  const next = normalizeTasks(raw);
+  const changed = next.length !== prev.length || next.some((t, i) => !prev[i] || prev[i].name !== t.name);
+  state.challengeName = name;
+  state.customTasks = next;
+  if (changed && state.lastDate !== today()) state.tasks = {};
+  save(); showToast('Metas salvas!');
+  render(); renderTasks();
+  document.getElementById('settingsBody').classList.remove('show');
+  document.getElementById('toggleSettingsBtn').textContent = i18n.edit;
+};
+
+document.getElementById('resetCustomizationBtn').onclick = () => {
   state.challengeName = i18n.challengeNameDefault;
   state.customTasks = get_DEFAULT_TASKS().slice();
   if (state.lastDate !== today()) state.tasks = {};
-  save();
-  showToast(i18n.toast_goals_reset);
-  render();
-  renderTasks();
+  save(); showToast('Metas redefinidas.');
+  render(); renderTasks();
+  renderGoalsEditor();
+  document.getElementById('settingsBody').classList.remove('show');
+  document.getElementById('toggleSettingsBtn').textContent = i18n.edit;
 };
 
-document.getElementById("unlockTodayBtn").onclick = () => {
-  document.getElementById("unlockConfirmModal").classList.add("show");
-};
+// ── LOCAL REMINDERS ────────────────────────────────────────
+// We use Notification API + a periodic check via visibilitychange / setInterval
+// No backend needed.
+let reminderInterval = null;
 
-document.getElementById("cancelUnlockBtn").onclick = () => {
-  document.getElementById("unlockConfirmModal").classList.remove("show");
-};
-document.getElementById("confirmUnlockBtn").onclick = () => {
-  // Guard to prevent state corruption. Only allow unlock if the day was closed today and day > 0.
-  if (state.lastDate !== today() || state.day <= 0) {
-    showToast(i18n.toast_unlock_not_allowed);
-    document.getElementById("unlockConfirmModal").classList.remove("show");
+function updateReminderUI() {
+  const toggle = document.getElementById('reminderToggle');
+  const status = document.getElementById('reminderStatus');
+  const timeInput = document.getElementById('reminderTimeInput');
+  toggle.classList.toggle('on', state.reminderEnabled);
+  toggle.setAttribute('role', 'switch');
+  toggle.setAttribute('aria-checked', state.reminderEnabled);
+  timeInput.value = state.reminderTime;
+  if (state.reminderEnabled) {
+    status.textContent = i18n.reminder_status_on_full.replace('{time}', state.reminderTime);
+    status.style.color = 'var(--c-neon)';
+  } else {
+    status.textContent = i18n.reminder_status_off;
+    status.style.color = '';
+  }
+}
+
+function checkAndFireReminder() {
+  if (!state.reminderEnabled) return;
+  if (state.lastDate === today()) return; // Already closed today
+  const now = new Date();
+  const [h, m] = state.reminderTime.split(':').map(Number);
+  if (now.getHours() === h && now.getMinutes() === m) {
+    const lastFired = localStorage.getItem('disciplina-reminder-fired');
+    if (lastFired !== today()) {
+      localStorage.setItem('disciplina-reminder-fired', today());
+      sendLocalNotification();
+    }
+  }
+}
+
+function sendLocalNotification() {
+  if (Notification.permission === 'granted') {
+    new Notification('Disciplina PRO 🔥', {
+      body: 'Não esqueça de completar suas metas hoje!',
+      icon: './icon-192.png',
+    });
+  }
+}
+
+async function toggleReminder() {
+  if (state.reminderEnabled) {
+    state.reminderEnabled = false;
+    save(); updateReminderUI();
+    showToast(i18n.toast_reminders_off);
     return;
   }
+  if (Notification.permission === 'denied') {
+    showToast(i18n.toast_permission_blocked);
+    return;
+  }
+  const perm = await Notification.requestPermission();
+  if (perm === 'granted') {
+    state.reminderEnabled = true;
+    save(); updateReminderUI();
+    showToast(i18n.toast_reminders_on);
+    startReminderInterval();
+  } else {
+    showToast(i18n.toast_permission_denied);
+  }
+}
 
-  // Reverte os status
-  state.day -= 1;
-  state.streak -= 1;
-  state.xp -= 20;
+function startReminderInterval() {
+  clearInterval(reminderInterval);
+  reminderInterval = setInterval(checkAndFireReminder, 60000);
+  checkAndFireReminder();
+}
 
-  // Garante que os valores não fiquem negativos
-  if (state.xp < 0) state.xp = 0;
-  if (state.streak < 0) state.streak = 0;
+document.getElementById('reminderToggle').onclick = toggleReminder;
+document.getElementById('reminderTimeInput').onchange = (e) => {
+  state.reminderTime = e.target.value;
+  save(); updateReminderUI();
+  showToast(i18n.toast_reminder_time_updated.replace('{time}', state.reminderTime));
+};
 
-  // Verifica se o nível precisa ser diminuído
-  while (state.xp < (state.level - 1) * 50 && state.level > 1) {
-    state.level -= 1;
+if (state.reminderEnabled) startReminderInterval();
+
+// ── INSTALL PWA ────────────────────────────────────────────
+function renderInstallUi() {
+  const btn = document.getElementById('installBtn');
+  const banner = document.getElementById('installBanner');
+  const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+  btn.hidden = !deferredInstallPrompt || standalone;
+  banner.classList.toggle('show', !!deferredInstallPrompt && !standalone && !state.installBannerDismissed);
+}
+
+async function triggerInstall() {
+  if (!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  try { await deferredInstallPrompt.userChoice; } catch(e) {}
+  deferredInstallPrompt = null;
+  state.installBannerDismissed = true; save();
+  renderInstallUi(); showToast(i18n.toast_app_installed);
+}
+
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredInstallPrompt = e; renderInstallUi(); });
+window.addEventListener('appinstalled', () => { deferredInstallPrompt = null; state.installBannerDismissed = true; save(); renderInstallUi(); showToast(i18n.toast_app_installed); });
+
+document.getElementById('installBtn').onclick = triggerInstall;
+document.getElementById('bannerInstallBtn').onclick = triggerInstall;
+document.getElementById('dismissInstallBannerBtn').onclick = () => {
+  state.installBannerDismissed = true; save(); renderInstallUi();
+};
+
+// ── UNLOCK ─────────────────────────────────────────────────
+document.getElementById('unlockTodayBtn').onclick = () => openModal('unlockConfirmModal');
+document.getElementById('cancelUnlockBtn').onclick = () => closeModal('unlockConfirmModal');
+document.getElementById('confirmUnlockBtn').onclick = () => {
+  if (state.lastDate !== today() || state.day <= 0) {
+    showToast(i18n.toast_unlock_not_allowed);
+    closeModal('unlockConfirmModal');
+    return;
+  }
+  const lastEntry = state.fullHistory[state.fullHistory.length - 1];
+  const wasPartial = state.history[state.day - 1] === 'partial';
+  const wasMiss    = state.history[state.day - 1] === 'miss';
+
+  let xpToRevert = 0;
+  if (!wasMiss && lastEntry) {
+    const effectiveDone = (lastEntry.completedTasks?.length || 0) + ((lastEntry.failedTasks?.length || 0) * GAMIFICATION_CONSTANTS.XP_FAIL_MULTIPLIER);
+    xpToRevert = Math.round(GAMIFICATION_CONSTANTS.XP_PER_DAY * (effectiveDone / lastEntry.total));
   }
 
+  state.day -= 1;
+  state.xp = Math.max(0, state.xp - xpToRevert);
+  if (!wasMiss) state.streak = Math.max(0, state.streak - 1);
+  while (state.xp < (state.level - 1) * GAMIFICATION_CONSTANTS.XP_PER_LEVEL && state.level > 1) state.level--;
   state.lastDate = null;
-  state.history.pop(); // Remove o status "done" do histórico
+  state.history.pop();
+  state.fullHistory.pop();
 
-  // Restaura as tarefas para o estado "todas marcadas" para que o usuário possa fechar o dia novamente
+  // Restore tasks to all checked so user can easily close again
   const TASKS = getTasks();
   state.tasks = {};
-  TASKS.forEach((_, i) => {
-    state.tasks[i] = true;
-  });
+  TASKS.forEach((_, i) => { state.tasks[i] = true; });
 
   save();
   showToast(i18n.toast_day_unlocked);
-  document.getElementById("unlockConfirmModal").classList.remove("show");
+  closeModal('unlockConfirmModal');
+  render(); renderTasks();
+};
+
+// ── MODALS ─────────────────────────────────────────────────
+// Refatorado para acessibilidade (focus trap, escape key, overlay click)
+function openModal(modalId) {
+  const modal = document.getElementById(modalId);
+  if (!modal) return;
+
+  const previouslyFocused = document.activeElement;
+  modal.previouslyFocused = previouslyFocused;
+
+  const modalContent = modal.querySelector('.modal, .welcome-card, .stats-modal, .share-modal');
+  if (modalContent) {
+    modalContent.setAttribute('role', 'dialog');
+    modalContent.setAttribute('aria-modal', 'true');
+  }
+
+  modal.classList.add('show');
+
+  const focusableElements = modal.querySelectorAll(
+    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+  );
+  const firstFocusable = focusableElements[0];
+  const lastFocusable = focusableElements[focusableElements.length - 1];
+
+  if (firstFocusable) firstFocusable.focus();
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Escape') closeModal(modalId);
+    if (e.key !== 'Tab' || !firstFocusable) return;
+
+    if (e.shiftKey) { // Shift + Tab
+      if (document.activeElement === firstFocusable) { lastFocusable.focus(); e.preventDefault(); }
+    } else { // Tab
+      if (document.activeElement === lastFocusable) { firstFocusable.focus(); e.preventDefault(); }
+    }
+  };
+
+  const handleOverlayClick = (e) => { if (e.target === modal) closeModal(modalId); };
+
+  document.addEventListener('keydown', handleKeyDown);
+  modal.addEventListener('click', handleOverlayClick);
+
+  modal.cleanup = () => {
+    document.removeEventListener('keydown', handleKeyDown);
+    modal.removeEventListener('click', handleOverlayClick);
+    if (modal.previouslyFocused) { modal.previouslyFocused.focus(); delete modal.previouslyFocused; }
+  };
+}
+
+function closeModal(modalId) {
+  const modal = document.getElementById(modalId);
+  if (!modal || !modal.classList.contains('show')) return;
+  modal.classList.remove('show');
+  if (modal.cleanup) { modal.cleanup(); delete modal.cleanup; }
+}
+
+function restartChallenge() {
+  state.day = 0;
+  state.history = [];
+  state.fullHistory = [];
+  state.tasks = {};
+  state.lastDate = null;
+  state.streak = 0;
+  state.winShown = false;
+  state.mission = randomItem(get_MISSIONS());
+  save();
+  closeModal('winModal');
   render();
   renderTasks();
+  showToast(i18n.toast_challenge_restarted);
+}
+
+document.getElementById('closeLevelupBtn').onclick = () => closeModal('levelupModal');
+document.getElementById('closeWinBtn').onclick     = () => closeModal('winModal');
+document.getElementById('closeShareBtn').onclick   = () => closeModal('shareModal');
+document.getElementById('closeStatsBtn').onclick   = () => closeModal('statsModal');
+document.getElementById('openStatsBtn').onclick    = () => { renderStatsModal(); openModal('statsModal'); };
+document.getElementById('restartChallengeBtn').onclick = restartChallenge;
+document.getElementById('startChallengeBtn').onclick = () => {
+  state.onboardingSeen = true; save();
+  closeModal('welcomeScreen');
 };
 
-document.getElementById("closeLevelupBtn").onclick = () => {
-  document.getElementById("levelupModal").classList.remove("show");
-};
-
-document.getElementById("closeWinBtn").onclick = () => {
-  document.getElementById("winModal").classList.remove("show");
-};
-
-document.getElementById("shareBtn").onclick = async () => {
-  const shareData = {
-    title: `🔥 Disciplina PRO`,
-    text: `Eu completei ${state.streak} ${state.streak > 1 ? 'dias' : 'dia'} de streak no desafio Disciplina PRO! 💪`,
-    url: 'https://disciplina-pro-checklist.vercel.app/'
+// ── SHARE ──────────────────────────────────────────────────
+document.getElementById('shareBtn').onclick = async () => {
+  const text = i18n.share_streak_text
+    .replace('{streak}', state.streak)
+    .replace('{appName}', i18n.app_name);
+  const data = {
+    title: 'Disciplina PRO 🔥',
+    text: text,
+    url: 'https://disciplina-pro-checklist.vercel.app/' // This URL should probably be a constant
   };
   try {
-    if (navigator.share) {
-      await navigator.share(shareData);
-    } else {
-      // Fallback para desktop ou navegadores sem suporte
-      navigator.clipboard.writeText(`${shareData.text} ${shareData.url}`);
-      showToast('Link copiado! Cole para compartilhar.');
-    }
-  } catch (err) {
-    console.error("Erro ao compartilhar:", err);
-  }
+    if (navigator.share) await navigator.share(data);
+    else { navigator.clipboard.writeText(`${data.text} ${data.url}`); showToast(i18n.toast_link_copied); }
+  } catch(e) {}
 };
 
-document.getElementById("closeShareBtn").onclick = () => {
-  document.getElementById("shareModal").classList.remove("show");
+document.getElementById('shareAppBtn').onclick = async () => {
+  const url = 'https://disciplina-pro-checklist.vercel.app/';
+  try {
+    if (navigator.share) await navigator.share({ title: 'Disciplina PRO', url });
+    else { navigator.clipboard.writeText(url); showToast(i18n.toast_link_copied); }
+  } catch(e) { navigator.clipboard.writeText(url); showToast(i18n.toast_link_copied); }
 };
 
-document.getElementById("startChallengeBtn").onclick = () => {
-  state.onboardingSeen = true;
-  save();
-  document.getElementById("welcomeScreen").classList.remove("show");
-};
-
-document.getElementById("backupBtn").onclick = () => {
-  const dataStr = JSON.stringify(state);
-  const dataBlob = new Blob([dataStr], {type: "application/json"});
-  const url = URL.createObjectURL(dataBlob);
-  const link = document.createElement('a');
-  link.href = url;
-  const date = new Date().toISOString().slice(0, 10);
-  link.download = `disciplina-pro-backup-${date}.json`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+// ── BACKUP / RESTORE ───────────────────────────────────────
+document.getElementById('backupBtn').onclick = () => {
+  const blob = new Blob([JSON.stringify(state)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = Object.assign(document.createElement('a'), { href: url, download: `disciplina-backup-${today()}.json` });
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(url);
   showToast(i18n.toast_backup_created);
 };
 
-document.getElementById("restoreBtn").onclick = () => {
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = '.json,application/json';
-  input.onchange = e => {
-    const file = e.target.files[0];
-    if (!file) return;
+document.getElementById('restoreBtn').onclick = () => {
+  const inp = Object.assign(document.createElement('input'), { type: 'file', accept: '.json,application/json' });
+  inp.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = ev => {
       try {
-        const newState = JSON.parse(event.target.result);
-        // Validação básica para garantir que é um backup válido
-        if (newState && typeof newState.day === 'number' && typeof newState.xp === 'number') {
-          state = newState;
-          save();
-          showToast(i18n.toast_restore_success);
-          render();
-          renderTasks();
-          renderGoalsEditor();
-        } else throw new Error("Invalid backup file format");
-      } catch (err) { showToast(i18n.toast_restore_fail); console.error(err); }
+        const ns = JSON.parse(ev.target.result);
+        if (ns && typeof ns.day === 'number' && typeof ns.xp === 'number') { // Basic validation
+          if (ns.schemaVersion !== state.schemaVersion) {
+            if (!confirm(i18n.backup_version_mismatch)) return;
+          }
+          state = ns; save(); showToast(i18n.toast_restore_success); render(); renderTasks(); renderGoalsEditor();
+        } else throw new Error();
+      } catch { showToast(i18n.toast_restore_fail); }
     };
     reader.readAsText(file);
   };
-  input.click();
+  inp.click();
 };
 
-document.getElementById("installBtn").onclick = triggerInstall;
-document.getElementById("bannerInstallBtn").onclick = triggerInstall;
-document.getElementById("dismissInstallBannerBtn").onclick = () => {
-  state.installBannerDismissed = true;
-  save();
-  renderInstallUi();
+// ── HARD RESET ─────────────────────────────────────────────
+document.getElementById('hardResetBtn').onclick = () => {
+  if (!confirm(i18n.confirm_hard_reset)) return;
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(regs =>
+      Promise.all(regs.map(r => r.unregister()))
+    ).then(() => { localStorage.clear(); location.reload(true); });
+  } else { localStorage.clear(); location.reload(true); }
 };
 
-document.getElementById("btn").onclick = () => {
-  const TASKS = getTasks();
-  const done = Object.values(state.tasks).filter(Boolean).length;
-  const allDone = done === TASKS.length;
-  if (state.lastDate === today()) return;
-  if (!allDone) return;
-
-  const oldXp = state.xp;
-  state.day += 1;
-  state.streak += 1;
-  state.xp += 20;
-  state.lastDate = today();
-  state.history[state.day - 1] = "done";
-
-  // Salva o estado detalhado das tarefas para as estatísticas
-  const completedTaskNames = getTasks()
-    .filter((_, i) => state.tasks[i])
-    .map(task => task.name);
-  state.fullHistory.push({
-    date: state.lastDate,
-    completedTasks: completedTaskNames
-  });
-
-  state.tasks = {};
-  state.mission = randomItem(get_MISSIONS());
- 
-  let leveledUp = false;
-  while (state.xp >= state.level * 50) {
-    state.level += 1;
-    leveledUp = true;
-  }
- 
-  save();
-  render();
-  renderTasks();
-  animateXpGain(oldXp, state.xp);
-  showXpGainToast(20);
-  showToast(i18n.toast_day_closed);
-  playTick();
-  setTimeout(() => playTick(), 90);
-  launchConfetti(28); // Standard confetti for closing a day
- 
-  const streakMilestones = [3, 7, 15, 30];
-  if (streakMilestones.includes(state.streak)) {
-    const shareTitleText = document.getElementById('shareTitleText');
-    shareTitleText.textContent = `🔥 ${state.streak} ${i18n.days_suffix} de Streak!`;
-    setTimeout(() => {
-      document.getElementById("shareModal").classList.add("show");
-    }, 800);
-  }
- 
-  if (leveledUp) {
-    // More elaborate animation sequence for level up
-    setTimeout(() => {
-      // 1. More intense confetti
-      launchConfetti(60);
-      
-      // 2. Play sound and vibration
-      playLevelUp();
-      vibrate([100, 50, 100, 50, 100]);
-
-      // 3. Animate the level badge in the hero section
-      const levelBadge = document.getElementById("level");
-      levelBadge.classList.remove("level-up-flash"); // Reset animation
-      void levelBadge.offsetWidth; // Trigger reflow to restart animation
-      levelBadge.classList.add("level-up-flash");
-
-      // 4. Show the modal
-      document.getElementById("levelupText").textContent = `${i18n.levelup_text_prefix} ${state.level}.`;
-      document.getElementById("levelupModal").classList.add("show");
-    }, 500); // Delay to let the XP bar finish
-  }
- 
-  if (state.day >= 30 && !state.winShown) {
-    state.winShown = true;
-    save();
-    setTimeout(() => {
-      document.getElementById("winModal").classList.add("show");
-      launchConfetti(40);
-      playLevelUp();
-    }, 220);
-  }
-};
-
-window.addEventListener("beforeinstallprompt", (event) => {
-  event.preventDefault();
-  deferredInstallPrompt = event;
-  renderInstallUi();
-});
-
-window.addEventListener("appinstalled", () => {
-  deferredInstallPrompt = null;
-  state.installBannerDismissed = true;
-  save();
-  renderInstallUi();
-  showToast(i18n.toast_app_installed);
-});
-
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./service-worker.js").catch((err) => {
-      console.error("Falha ao registrar o Service Worker:", err);
-    });
+// ── SERVICE WORKER ─────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js').catch(() => {});
   });
 }
 
+// ── INIT ───────────────────────────────────────────────────
 try {
+  document.documentElement.lang = userLang;
   updateMissedDay();
   applyTheme(state.theme);
-  applyTranslations();
   setupCalendar();
+  applyI18n();
   setupGoalsEditor();
   renderGoalsEditor();
   render();
   renderTasks();
-  if (!state.onboardingSeen) {
-    document.getElementById("welcomeScreen").classList.add("show");
+  if (!state.onboardingSeen) openModal('welcomeScreen');
+
+  // Handle App Shortcut actions
+  const urlParams = new URLSearchParams(window.location.search);
+  const action = urlParams.get('action');
+  if (action) {
+    // Use a small timeout to ensure the UI is ready
+    setTimeout(() => {
+      if (action === 'stats') openModal('statsModal');
+      else if (action === 'settings') document.getElementById('toggleSettingsBtn')?.click();
+      // Clear the action from URL to avoid re-triggering on reload
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }, 500);
   }
 
-  // Hide splash screen after a short delay to let the app render and animations settle
-  setTimeout(() => {
-    document.getElementById('splashScreen').classList.add('hidden');
-  }, 400);
-
-} catch (error) {
-  console.error("A critical rendering error occurred:", error);
+  setTimeout(() => document.getElementById('splashScreen').classList.add('hidden'), 450);
+} catch (err) {
+  console.error('Critical init error:', err);
   document.body.innerHTML = `
-    <div style="padding: 20px; text-align: center; color: white; font-family: sans-serif; max-width: 600px; margin: 40px auto;">
-        <h1 style="color: #ff5f7a;">Ocorreu um Erro Crítico</h1>
-        <p style="line-height: 1.6;">Parece que os dados salvos do aplicativo estão corrompidos, o que impede seu funcionamento. Isso pode acontecer após uma atualização.</p>
-        <p style="line-height: 1.6;"><strong>Para resolver, clique no botão abaixo para fazer um reset completo do aplicativo.</strong></p>
-        <button id="hardResetBtn" style="background: #ff5f7a; color: white; border: none; padding: 14px 24px; font-size: 16px; font-weight: bold; border-radius: 12px; cursor: pointer; margin-top: 20px;">Limpar Dados e Recarregar</button>
-        <p style="font-size: 12px; opacity: 0.7; line-height: 1.5; margin-top: 12px;">Atenção: Isso irá apagar todo o seu progresso, mas corrigirá o aplicativo. Use esta opção se o app não estiver carregando corretamente.</p>
-    </div>
-    <script>
-      // O texto é fixo (hardcoded) pois não podemos garantir que o i18n carregou.
-      const splash = document.getElementById('splashScreen');
-      if (splash) {
-        splash.classList.add('hidden');
-      }
-      document.getElementById('hardResetBtn').onclick = function() {
-        this.disabled = true;
-        this.textContent = 'Limpando...';
-        if ('serviceWorker' in navigator) {
-          navigator.serviceWorker.getRegistrations().then(function(registrations) {
-            return Promise.all(registrations.map(r => r.unregister()));
-          }).then(function() {
-            localStorage.clear();
-            window.location.reload(true);
-          });
-        } else {
-          localStorage.clear();
-          window.location.reload(true);
-        }
-      };
-    <\/script>
-  `;
+    <div style="padding:30px;text-align:center;color:#f0f0fa;font-family:sans-serif;max-width:500px;margin:60px auto">
+      <h2 style="color:#ff4f6d">${i18n.error_load_title || 'Error loading'}</h2>
+      <p style="margin:12px 0;line-height:1.6">${i18n.error_load_subtitle || 'Data may be corrupted. Click below to reset.'}</p>
+      <button onclick="localStorage.clear();location.reload(true)" style="background:#ff4f6d;color:#fff;border:none;padding:14px 22px;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;margin-top:12px">
+        ${i18n.error_load_button || 'Clear Data and Reload'}
+      </button>
+    </div>`;
 }
